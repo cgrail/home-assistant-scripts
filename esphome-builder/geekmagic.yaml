@@ -111,7 +111,7 @@ display:
       }
 
       // --- Clock ---
-      it.strftime(120, 6, id(font_clock), id(color_cyan), TextAlign::CENTER, "%H:%M", now);
+      it.strftime(120, 20, id(font_clock), id(color_cyan), TextAlign::CENTER, "%H:%M", now);
       it.strftime(120, 50, id(font_date), id(color_gray), TextAlign::CENTER, "%a, %d.%m.%Y", now);
 
       // --- Divider ---
@@ -128,7 +128,7 @@ display:
 
       y += 18;
       it.printf(10, y, id(font_label), id(color_yellow), "Heute");
-      it.printf(130, y, id(font_value), id(color_white), "%.1f kWh", id(taglicher_stromverbrauch).state);
+      it.printf(60, y, id(font_value), id(color_white), "%.1f kWh", id(taglicher_stromverbrauch).state);
       it.printf(178, y, id(font_label), id(color_yellow), "WP");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(tag_wp).state);
 
@@ -143,7 +143,7 @@ display:
 
       y += 18;
       it.printf(10, y, id(font_label), id(color_green), "PV");
-      it.printf(100, y, id(font_value), id(color_white), "%.1f kWh", id(pv).state);
+      it.printf(60, y, id(font_value), id(color_white), "%.1f kWh", id(pv).state);
       it.printf(148, y, id(font_label), id(color_green), "Einsp.");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(pv_eingespeist).state);
 
@@ -162,7 +162,7 @@ display:
       y += 20;
       it.printf(10, y, id(font_label), id(color_red), "Buzz");
       it.printf(60, y, id(font_value), id(color_white), "%.0f %%", id(buzz_battery_level).state);
-      it.printf(130, y, id(font_label), id(color_red), "Geladen");
+      it.printf(100, y, id(font_label), id(color_red), "Geladen");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f mWh", id(buzz_gesamt_geladen).state);
 
 time:
