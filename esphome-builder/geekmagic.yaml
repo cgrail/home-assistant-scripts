@@ -129,7 +129,7 @@ display:
       y += 18;
       it.printf(10, y, id(font_label), id(color_yellow), "Heute");
       it.printf(60, y, id(font_value), id(color_white), "%.1f kWh", id(taglicher_stromverbrauch).state);
-      it.printf(130, y, id(font_label), id(color_yellow), "WP");
+      it.printf(140, y, id(font_label), id(color_yellow), "WP");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(tag_wp).state);
 
       // --- Divider ---
@@ -139,11 +139,11 @@ display:
       // --- Netz & PV ---
       y += 6;
       it.printf(10, y, id(font_label), id(color_orange), "Netzbezug");
-      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(netzbezug).state);
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(netzbezug).state / 1000.0);
 
       y += 18;
       it.printf(10, y, id(font_label), id(color_green), "PV");
-      it.printf(40, y, id(font_value), id(color_white), "%.1f kWh", id(pv).state);
+      it.printf(40, y, id(font_value), id(color_white), "%.1f kWh", id(pv).state / 1000.0);
       it.printf(130, y, id(font_label), id(color_green), "Einsp.");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(pv_eingespeist).state);
 
