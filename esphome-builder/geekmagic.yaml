@@ -52,21 +52,38 @@ light:
     restore_mode: RESTORE_AND_ON
 
 font:
-  - file: "gfonts://Roboto"
+  - file: "gfonts://Roboto@700"
     id: font_clock
-    size: 35
+    size: 42
   - file: "gfonts://Roboto"
     id: font_date
-    size: 20
-  - file: "gfonts://Roboto"
-    id: font_small
     size: 16
+  - file: "gfonts://Roboto@500"
+    id: font_label
+    size: 14
+  - file: "gfonts://Roboto@700"
+    id: font_value
+    size: 14
 
 color:
+  - id: color_cyan
+    hex: "00BCD4"
+  - id: color_yellow
+    hex: "FFD54F"
   - id: color_green
-    red: 0%
-    green: 100%
-    blue: 0%
+    hex: "66BB6A"
+  - id: color_orange
+    hex: "FFA726"
+  - id: color_blue
+    hex: "42A5F5"
+  - id: color_red
+    hex: "EF5350"
+  - id: color_gray
+    hex: "9E9E9E"
+  - id: color_white
+    hex: "EEEEEE"
+  - id: color_dim
+    hex: "666666"
 
 display:  
   - platform: mipi_spi
@@ -82,25 +99,71 @@ display:
     reset_pin: GPIO02
     #backlight_pin: GPIO25
     color_depth: 8
-    #update_interval: never
-    update_interval: 60s
+    update_interval: 30s
     id: disp
     spi_mode: mode3
     lambda: |-
       it.fill(Color::BLACK);
       auto now = id(current_time).now();
       if (!now.is_valid()) {
-        it.print(120, 100, id(font_small), Color::WHITE, TextAlign::CENTER, "Warte auf Daten...");
+        it.print(120, 110, id(font_label), id(color_gray), TextAlign::CENTER, "Warte auf Daten...");
         return;
       }
-      it.strftime(120, 15, id(font_clock), Color::WHITE, TextAlign::CENTER, "%H:%M", now);
-      it.strftime(120, 50, id(font_date), Color(180, 180, 180), TextAlign::CENTER, "%a, %d.%m.%Y", now);
-      it.printf(10, 70, id(font_small), Color::WHITE, "Strom: %.1f kWh (ohne WP: %.1f kWh)", id(gesamt_stromverbrauch).state, id(hausverbrauch_ohne_wp).state);
-      it.printf(10, 90, id(font_small), Color::WHITE, "Tag ⚡: %.1f kWh (WP: %.1f kWh)", id(taglicher_stromverbrauch).state, id(tag_wp).state);
-      it.printf(10, 110, id(font_small), Color::WHITE, "Netzbezug: %.1f kWh", id(netzbezug).state);
-      it.printf(10, 130, id(font_small), Color::WHITE, "PV: %.1f kWh (Eingespeist: %.1f kWh)", id(pv).state, id(pv_eingespeist).state);
-      it.printf(10, 150, id(font_small), Color::WHITE, "WW: %.1f °C (Zyklen: %.0f)", id(ww_temperatur).state, id(heizzyklen).state);
-      it.printf(10, 170, id(font_small), Color::WHITE, "Buzz: %.1f %% (Gesamt %.1f mWh)", id(buzz_battery_level).state, id(buzz_gesamt_geladen).state);
+
+      // --- Clock ---
+      it.strftime(120, 6, id(font_clock), id(color_cyan), TextAlign::CENTER, "%H:%M", now);
+      it.strftime(120, 50, id(font_date), id(color_gray), TextAlign::CENTER, "%a, %d.%m.%Y", now);
+
+      // --- Divider ---
+      it.horizontal_line(16, 68, 208, id(color_dim));
+
+      // --- Strom ---
+      int y = 76;
+      it.printf(10, y, id(font_label), id(color_yellow), "Gesamt");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(gesamt_stromverbrauch).state);
+
+      y += 18;
+      it.printf(10, y, id(font_label), id(color_yellow), "Ohne WP");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(hausverbrauch_ohne_wp).state);
+
+      y += 18;
+      it.printf(10, y, id(font_label), id(color_yellow), "Heute");
+      it.printf(130, y, id(font_value), id(color_white), "%.1f kWh", id(taglicher_stromverbrauch).state);
+      it.printf(178, y, id(font_label), id(color_yellow), "WP");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(tag_wp).state);
+
+      // --- Divider ---
+      y += 20;
+      it.horizontal_line(16, y, 208, id(color_dim));
+
+      // --- Netz & PV ---
+      y += 6;
+      it.printf(10, y, id(font_label), id(color_orange), "Netzbezug");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(netzbezug).state);
+
+      y += 18;
+      it.printf(10, y, id(font_label), id(color_green), "PV");
+      it.printf(100, y, id(font_value), id(color_white), "%.1f kWh", id(pv).state);
+      it.printf(148, y, id(font_label), id(color_green), "Einsp.");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(pv_eingespeist).state);
+
+      // --- Divider ---
+      y += 20;
+      it.horizontal_line(16, y, 208, id(color_dim));
+
+      // --- Warmwasser ---
+      y += 6;
+      it.printf(10, y, id(font_label), id(color_blue), "Warmwasser");
+      it.printf(130, y, id(font_value), id(color_white), "%.1f C", id(ww_temperatur).state);
+      it.printf(178, y, id(font_label), id(color_blue), "Zyklen");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.0f", id(heizzyklen).state);
+
+      // --- Auto ---
+      y += 20;
+      it.printf(10, y, id(font_label), id(color_red), "Buzz");
+      it.printf(60, y, id(font_value), id(color_white), "%.0f %%", id(buzz_battery_level).state);
+      it.printf(130, y, id(font_label), id(color_red), "Geladen");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f mWh", id(buzz_gesamt_geladen).state);
 
 time:
   - platform: homeassistant
