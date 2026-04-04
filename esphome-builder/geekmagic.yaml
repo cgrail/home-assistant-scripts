@@ -129,7 +129,7 @@ display:
       y += 18;
       it.printf(10, y, id(font_label), id(color_yellow), "Heute");
       it.printf(60, y, id(font_value), id(color_white), "%.1f kWh", id(taglicher_stromverbrauch).state);
-      it.printf(178, y, id(font_label), id(color_yellow), "WP");
+      it.printf(130, y, id(font_label), id(color_yellow), "WP");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(tag_wp).state);
 
       // --- Divider ---
@@ -143,8 +143,8 @@ display:
 
       y += 18;
       it.printf(10, y, id(font_label), id(color_green), "PV");
-      it.printf(60, y, id(font_value), id(color_white), "%.1f kWh", id(pv).state);
-      it.printf(148, y, id(font_label), id(color_green), "Einsp.");
+      it.printf(40, y, id(font_value), id(color_white), "%.1f kWh", id(pv).state);
+      it.printf(130, y, id(font_label), id(color_green), "Einsp.");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(pv_eingespeist).state);
 
       // --- Divider ---
@@ -154,15 +154,15 @@ display:
       // --- Warmwasser ---
       y += 6;
       it.printf(10, y, id(font_label), id(color_blue), "Warmwasser");
-      it.printf(130, y, id(font_value), id(color_white), "%.1f C", id(ww_temperatur).state);
+      it.printf(110, y, id(font_value), id(color_white), "%.1f C", id(ww_temperatur).state);
       it.printf(178, y, id(font_label), id(color_blue), "Zyklen");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.0f", id(heizzyklen).state);
 
       // --- Auto ---
       y += 20;
       it.printf(10, y, id(font_label), id(color_red), "Buzz");
-      it.printf(60, y, id(font_value), id(color_white), "%.0f %%", id(buzz_battery_level).state);
-      it.printf(100, y, id(font_label), id(color_red), "Geladen");
+      it.printf(50, y, id(font_value), id(color_white), "%.0f %%", id(buzz_battery_level).state);
+      it.printf(110, y, id(font_label), id(color_red), "Geladen");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f mWh", id(buzz_gesamt_geladen).state);
 
 time:
