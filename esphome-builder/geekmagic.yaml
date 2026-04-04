@@ -54,7 +54,7 @@ light:
 font:
   - file: "gfonts://Roboto"
     id: font_clock
-    size: 48
+    size: 35
   - file: "gfonts://Roboto"
     id: font_date
     size: 20
@@ -88,19 +88,19 @@ display:
     spi_mode: mode3
     lambda: |-
       it.fill(Color::BLACK);
-
-      float energy_kwh = id(total_energy).has_state() && !isnan(id(total_energy).state) 
-                   ? id(total_energy).state / 1000.0f 
-                   : 0.0f;
-      
       auto now = id(current_time).now();
       if (!now.is_valid()) {
-        it.print(120, 100, id(font_small), Color::WHITE, TextAlign::CENTER, "Warte auf Zeit...");
+        it.print(120, 100, id(font_small), Color::WHITE, TextAlign::CENTER, "Warte auf Daten...");
         return;
       }
-      it.strftime(120, 70, id(font_clock), Color::WHITE, TextAlign::CENTER, "%H:%M", now);
-      it.strftime(120, 130, id(font_date), Color(180, 180, 180), TextAlign::CENTER, "%a, %d.%m.%Y", now);
-      it.printf(10, 200, id(font_small), Color(255, 0, 0), "Total: %.1f kWh", energy_kwh);
+      it.strftime(120, 15, id(font_clock), Color::WHITE, TextAlign::CENTER, "%H:%M", now);
+      it.strftime(120, 50, id(font_date), Color(180, 180, 180), TextAlign::CENTER, "%a, %d.%m.%Y", now);
+      it.printf(10, 70, id(font_small), Color::WHITE, "Strom: %.1f kWh (ohne WP: %.1f kWh)", id(gesamt_stromverbrauch).state, id(hausverbrauch_ohne_wp).state);
+      it.printf(10, 90, id(font_small), Color::WHITE, "Tag ⚡: %.1f kWh (WP: %.1f kWh)", id(taglicher_stromverbrauch).state, id(tag_wp).state);
+      it.printf(10, 110, id(font_small), Color::WHITE, "Netzbezug: %.1f kWh", id(netzbezug).state);
+      it.printf(10, 130, id(font_small), Color::WHITE, "PV: %.1f kWh (Eingespeist: %.1f kWh)", id(pv).state, id(pv_eingespeist).state);
+      it.printf(10, 150, id(font_small), Color::WHITE, "WW: %.1f °C (Zyklen: %.0f)", id(ww_temperatur).state, id(heizzyklen).state);
+      it.printf(10, 170, id(font_small), Color::WHITE, "Buzz: %.1f %% (Gesamt %.1f mWh)", id(buzz_battery_level).state, id(buzz_gesamt_geladen).state);
 
 time:
   - platform: homeassistant
@@ -108,6 +108,38 @@ time:
 
 sensor:
   - platform: homeassistant
-    id: total_energy
-    entity_id: sensor.fronius_total_energy
-    internal: false
+    id: gesamt_stromverbrauch
+    entity_id: sensor.gesamt_stromverbrauch_in_kwh
+  - platform: homeassistant
+    id: hausverbrauch_ohne_wp
+    entity_id: sensor.hausverbrauch_ohne_wp
+  - platform: homeassistant
+    id: netzbezug
+    entity_id: sensor.solarnet_power_grid_import
+  - platform: homeassistant
+    id: ww_temperatur
+    entity_id: sensor.hybrox_11_grail_dhw
+  - platform: homeassistant
+    id: heizzyklen
+    entity_id: sensor.tagliche_wp_heizzyklen
+  - platform: homeassistant
+    id: pv
+    entity_id: sensor.solarnet_power_photovoltaics
+  - platform: homeassistant
+    id: batterie_prozent
+    entity_id: sensor.batterie_ladeleistung_entladeleistung
+  - platform: homeassistant
+    id: buzz_battery_level
+    entity_id: sensor.buzz_battery_level
+  - platform: homeassistant
+    id: buzz_gesamt_geladen
+    entity_id: sensor.wattpilot_gesamt
+  - platform: homeassistant
+    id: pv_eingespeist
+    entity_id: sensor.taglich_eingespeist
+  - platform: homeassistant
+    id: taglicher_stromverbrauch
+    entity_id: sensor.taglicher_stromvebrauch
+  - platform: homeassistant
+    id: tag_wp
+    entity_id: sensor.taglich_wp_gesamt
