@@ -120,10 +120,9 @@ display:
       // --- Strom ---
       int y = 76;
       it.printf(10, y, id(font_label), id(color_yellow), "Gesamt:");
-      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(gesamt_stromverbrauch).state);
+      it.printf(70, y, id(font_value), id(color_white), "%.1f kWh", id(gesamt_stromverbrauch).state);
 
-      y += 18;
-      it.printf(10, y, id(font_label), id(color_yellow), "Ohne WP:");
+      it.printf(110, y, id(font_label), id(color_yellow), "Ohne WP:");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(hausverbrauch_ohne_wp).state);
 
       y += 18;
