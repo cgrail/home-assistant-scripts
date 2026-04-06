@@ -112,6 +112,7 @@ display:
 
       // --- Clock ---
       it.strftime(10, 0, id(font_clock), id(color_cyan), "%H:%M", now);
+      it.printf(230, 0, id(font_clock), id(color_orange), TextAlign::TOP_RIGHT, "%.0f°C", id(weather_temperature).state);
       it.strftime(10, 45, id(font_date), id(color_gray), "%a, %d.%m.%Y", now);
 
       // --- Divider ---
@@ -119,21 +120,23 @@ display:
 
       // --- Strom ---
       int y = 76;
-      it.printf(10, y, id(font_label), id(color_yellow), "Gesamt:");
+      it.printf(10, y, id(font_label), id(color_red), "Gesamt:");
       it.printf(70, y, id(font_value), id(color_white), "%.1f kW", id(gesamt_stromverbrauch).state);
 
-      it.printf(140, y, id(font_label), id(color_yellow), "- WP:");
+      it.printf(140, y, id(font_label), id(color_red), "- WP:");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(hausverbrauch_ohne_wp).state);
 
       y += 18;
       it.printf(10, y, id(font_label), id(color_yellow), "PV:");
       it.printf(70, y, id(font_value), id(color_white), "%.1f kW", id(pv).state / 1000.0);
-      it.printf(130, y, id(font_label), id(color_yellow), "Einsp.:");
-      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(pv_eingespeist).state);
+      it.printf(140, y, id(font_label), id(color_yellow), "Akku:");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f %%", id(byd_battery_box_premium_hv_state_of_charge).state);
 
       y += 18;
       it.printf(10, y, id(font_label), id(color_red), "Netz:");
       it.printf(70, y, id(font_value), id(color_white), "%.1f kW", id(netzbezug).state / 1000.0);
+      it.printf(140, y, id(font_label), id(color_yellow), "Einsp.:");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(pv_eingespeist).state);
 
       // --- Divider ---
       y += 20;
@@ -142,15 +145,15 @@ display:
       // --- Heute ---
       y += 6;
 
-      it.printf(10, y, id(font_label), id(color_yellow), "Heute:");
+      it.printf(10, y, id(font_label), id(color_red), "Heute:");
       it.printf(70, y, id(font_value), id(color_white), "%.1f kWh", id(taglicher_stromverbrauch).state);
-      it.printf(150, y, id(font_label), id(color_yellow), "WP:");
+      it.printf(150, y, id(font_label), id(color_red), "WP:");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(tag_wp).state);
 
       y += 18;
-      it.printf(10, y, id(font_label), id(color_green), "PV:");
+      it.printf(10, y, id(font_label), id(color_yellow), "PV:");
       it.printf(70, y, id(font_value), id(color_white), "%.1f kWh", id(tagliche_pv_produktion).state);
-      it.printf(130, y, id(font_label), id(color_green), "Einsp.:");
+      it.printf(130, y, id(font_label), id(color_yellow), "Einsp.:");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(taglich_eingespeist).state);
 
       // --- Divider ---
@@ -218,3 +221,10 @@ sensor:
   - platform: homeassistant
     id: taglich_eingespeist
     entity_id: sensor.taglich_eingespeist
+  - platform: homeassistant
+    id: byd_battery_box_premium_hv_state_of_charge
+    entity_id: sensor.byd_battery_box_premium_hv_state_of_charge
+  - platform: homeassistant
+    id: weather_temperature
+    entity_id: weather.forecast_home
+    attribute: temperature
