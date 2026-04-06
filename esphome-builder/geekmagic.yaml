@@ -111,29 +111,29 @@ display:
       }
 
       // --- Clock ---
-      it.strftime(120, 20, id(font_clock), id(color_cyan), TextAlign::CENTER, "%H:%M", now);
-      it.strftime(120, 50, id(font_date), id(color_gray), TextAlign::CENTER, "%a, %d.%m.%Y", now);
+      it.strftime(10, 0, id(font_clock), id(color_cyan), "%H:%M", now);
+      it.strftime(10, 40, id(font_date), id(color_gray), "%a, %d.%m.%Y", now);
 
       // --- Divider ---
-      it.horizontal_line(16, 68, 208, id(color_dim));
+      it.horizontal_line(16, 70, 208, id(color_dim));
 
       // --- Strom ---
       int y = 76;
       it.printf(10, y, id(font_label), id(color_yellow), "Gesamt:");
-      it.printf(70, y, id(font_value), id(color_white), "%.1f kWh", id(gesamt_stromverbrauch).state);
+      it.printf(70, y, id(font_value), id(color_white), "%.1f kW", id(gesamt_stromverbrauch).state);
 
-      it.printf(110, y, id(font_label), id(color_yellow), "Ohne WP:");
-      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(hausverbrauch_ohne_wp).state);
+      it.printf(130, y, id(font_label), id(color_yellow), "- WP:");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(hausverbrauch_ohne_wp).state);
 
       y += 18;
       it.printf(10, y, id(font_label), id(color_green), "PV:");
-      it.printf(40, y, id(font_value), id(color_white), "%.1f kWh", id(pv).state / 1000.0);
+      it.printf(70, y, id(font_value), id(color_white), "%.1f kW", id(pv).state / 1000.0);
       it.printf(130, y, id(font_label), id(color_green), "Einsp.:");
-      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(pv_eingespeist).state);
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(pv_eingespeist).state);
 
       y += 18;
       it.printf(10, y, id(font_label), id(color_orange), "Netzbezug:");
-      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(netzbezug).state / 1000.0);
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(netzbezug).state / 1000.0);
 
       // --- Divider ---
       y += 20;
@@ -143,9 +143,15 @@ display:
       y += 6;
 
       it.printf(10, y, id(font_label), id(color_yellow), "Heute:");
-      it.printf(60, y, id(font_value), id(color_white), "%.1f kWh", id(taglicher_stromverbrauch).state);
+      it.printf(70, y, id(font_value), id(color_white), "%.1f kWh", id(taglicher_stromverbrauch).state);
       it.printf(150, y, id(font_label), id(color_yellow), "WP:");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(tag_wp).state);
+
+      y += 18;
+      it.printf(10, y, id(font_label), id(color_green), "PV:");
+      it.printf(70, y, id(font_value), id(color_white), "%.1f kWh", id(tagliche_pv_produktion).state);
+      it.printf(130, y, id(font_label), id(color_green), "Einsp.:");
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kWh", id(taglich_eingespeist).state);
 
       // --- Divider ---
       y += 20;
@@ -161,7 +167,7 @@ display:
       // --- Auto ---
       y += 20;
       it.printf(10, y, id(font_label), id(color_blue), "Buzz:");
-      it.printf(50, y, id(font_value), id(color_white), "%.0f %%", id(buzz_battery_level).state);
+      it.printf(70, y, id(font_value), id(color_white), "%.0f %%", id(buzz_battery_level).state);
       it.printf(110, y, id(font_label), id(color_blue), "Gesamt:");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f mWh", id(buzz_gesamt_geladen).state);
 
@@ -206,3 +212,9 @@ sensor:
   - platform: homeassistant
     id: tag_wp
     entity_id: sensor.taglich_wp_gesamt
+  - platform: homeassistant
+    id: tagliche_pv_produktion
+    entity_id: sensor.tagliche_pv_produktion
+  - platform: homeassistant
+    id: taglich_eingespeist
+    entity_id: sensor.taglich_eingespeist
