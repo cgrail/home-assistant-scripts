@@ -136,7 +136,7 @@ display:
       it.printf(10, y, id(font_label), id(color_red), "Netz:");
       it.printf(70, y, id(font_value), id(color_white), "%.1f kW", id(netzbezug).state / 1000.0);
       it.printf(140, y, id(font_label), id(color_red), "Ein.:");
-      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(pv_eingespeist).state);
+      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(pv_eingespeist).state  / 1000.0);
 
       // --- Divider ---
       y += 20;
