@@ -208,7 +208,7 @@ sensor:
     entity_id: sensor.wattpilot_gesamt
   - platform: homeassistant
     id: pv_eingespeist
-    entity_id: sensor.taglich_eingespeist
+    entity_id: sensor.solarnet_power_grid_export
   - platform: homeassistant
     id: taglicher_stromverbrauch
     entity_id: sensor.taglicher_stromvebrauch
