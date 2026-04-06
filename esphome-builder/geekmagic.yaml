@@ -112,7 +112,7 @@ display:
 
       // --- Clock ---
       it.strftime(10, 0, id(font_clock), id(color_cyan), "%H:%M", now);
-      it.strftime(10, 40, id(font_date), id(color_gray), "%a, %d.%m.%Y", now);
+      it.strftime(10, 45, id(font_date), id(color_gray), "%a, %d.%m.%Y", now);
 
       // --- Divider ---
       it.horizontal_line(16, 70, 208, id(color_dim));
@@ -122,18 +122,18 @@ display:
       it.printf(10, y, id(font_label), id(color_yellow), "Gesamt:");
       it.printf(70, y, id(font_value), id(color_white), "%.1f kW", id(gesamt_stromverbrauch).state);
 
-      it.printf(130, y, id(font_label), id(color_yellow), "- WP:");
+      it.printf(140, y, id(font_label), id(color_yellow), "- WP:");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(hausverbrauch_ohne_wp).state);
 
       y += 18;
-      it.printf(10, y, id(font_label), id(color_green), "PV:");
+      it.printf(10, y, id(font_label), id(color_yellow), "PV:");
       it.printf(70, y, id(font_value), id(color_white), "%.1f kW", id(pv).state / 1000.0);
-      it.printf(130, y, id(font_label), id(color_green), "Einsp.:");
+      it.printf(130, y, id(font_label), id(color_yellow), "Einsp.:");
       it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(pv_eingespeist).state);
 
       y += 18;
-      it.printf(10, y, id(font_label), id(color_orange), "Netzbezug:");
-      it.printf(230, y, id(font_value), id(color_white), TextAlign::TOP_RIGHT, "%.1f kW", id(netzbezug).state / 1000.0);
+      it.printf(10, y, id(font_label), id(color_red), "Netz:");
+      it.printf(70, y, id(font_value), id(color_white), "%.1f kW", id(netzbezug).state / 1000.0);
 
       // --- Divider ---
       y += 20;
