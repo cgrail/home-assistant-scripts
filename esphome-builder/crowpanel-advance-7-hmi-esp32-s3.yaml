@@ -6,6 +6,10 @@ esp32:
   board: esp32-s3-devkitc-1
   framework:
     type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_LCD_RGB_ISR_IRAM_SAFE: "y"
+      CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY: "y"
 
 psram:
   mode: octal
@@ -192,21 +196,33 @@ sensor:
   - platform: homeassistant
     id: gesamt_stromverbrauch
     entity_id: sensor.gesamt_stromverbrauch_in_kwh
+    filters:
+      - delta: 0.05
   - platform: homeassistant
     id: hausverbrauch_ohne_wp
     entity_id: sensor.hausverbrauch_ohne_wp
+    filters:
+      - delta: 0.05
   - platform: homeassistant
     id: pv
     entity_id: sensor.solarnet_power_photovoltaics
+    filters:
+      - delta: 50
   - platform: homeassistant
     id: byd_battery_box_premium_hv_state_of_charge
     entity_id: sensor.byd_battery_box_premium_hv_state_of_charge
+    filters:
+      - delta: 0.5
   - platform: homeassistant
     id: netzbezug
     entity_id: sensor.solarnet_power_grid_import
+    filters:
+      - delta: 50
   - platform: homeassistant
     id: pv_eingespeist
     entity_id: sensor.solarnet_power_grid_export
+    filters:
+      - delta: 50
   - platform: homeassistant
     id: taglicher_stromverbrauch
     entity_id: sensor.taglicher_stromvebrauch
