@@ -325,7 +325,7 @@ lvgl:
               text_color: 0xEF9A9A
           - label:
               id: val_gesamt
-              x: 180
+              x: 200
               y: 32
               text: "-- kW"
               text_color: 0xECEFF1
@@ -347,7 +347,7 @@ lvgl:
               text_color: 0xFFD54F
           - label:
               id: val_pv
-              x: 180
+              x: 200
               y: 68
               text: "-- kW"
               text_color: 0xECEFF1
@@ -369,7 +369,7 @@ lvgl:
               text_color: 0xEF9A9A
           - label:
               id: val_netz
-              x: 180
+              x: 200
               y: 104
               text: "-- kW"
               text_color: 0xECEFF1
@@ -418,7 +418,7 @@ lvgl:
               text_color: 0xEF9A9A
           - label:
               id: val_heute
-              x: 180
+              x: 200
               y: 32
               text: "-- kWh"
               text_color: 0xECEFF1
@@ -440,14 +440,14 @@ lvgl:
               text_color: 0xFFD54F
           - label:
               id: val_pv_heute
-              x: 180
+              x: 200
               y: 65
               text: "-- kWh"
               text_color: 0xECEFF1
           - label:
               x: 405
               y: 65
-              text: "Heute eingespeist.:"
+              text: "Heute eingespeist:"
               text_color: 0x66BB6A
           - label:
               id: val_ein_heute
@@ -489,7 +489,7 @@ lvgl:
               text_color: 0xEF9A9A
           - label:
               id: val_wasser
-              x: 180
+              x: 200
               y: 35
               text: "-- C"
               text_color: 0xECEFF1
@@ -511,7 +511,7 @@ lvgl:
               text_color: 0x42A5F5
           - label:
               id: val_buzz
-              x: 180
+              x: 200
               y: 75
               text: "-- %"
               text_color: 0xECEFF1
