@@ -297,9 +297,9 @@ lvgl:
               text_color: 0x64748B # Muted Slate
           - label:
               id: label_weather_temp
-              x: 650
+              x: 600
               y: 10
-              width: 100
+              width: 200
               text: "-- °C"
               text_font: montserrat_48_temp
               text_color: 0x38BDF8 # Light Blue
@@ -354,30 +354,33 @@ lvgl:
           - label:
               x: 320
               y: 45
-              text: "Haus Gesamt"
-              text_font: montserrat_14
-              text_color: 0x38BDF8 # Blue
-          - label:
-              id: val_gesamt
-              x: 320
-              y: 65
-              text: "-- kW"
-              text_color: 0xF8FAFC
-
-          # Row 2
-          - label:
-              x: 15
-              y: 110
               text: "Einspeisung"
               text_font: montserrat_14
               text_color: 0x4ADE80 # Green
           - label:
               id: val_eingespeist
+              x: 320
+              y: 65
+              text: "-- kW"
+              text_color: 0xF8FAFC
+
+
+          # Row 2
+
+
+          - label:
+              x: 15
+              y: 110
+              text: "Haus Gesamt"
+              text_font: montserrat_14
+              text_color: 0x38BDF8 # Blue
+          - label:
+              id: val_gesamt
               x: 15
               y: 130
               text: "-- kW"
               text_color: 0xF8FAFC
-              
+
           - label:
               x: 170
               y: 110
