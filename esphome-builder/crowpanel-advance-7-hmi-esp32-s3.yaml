@@ -246,214 +246,276 @@ sensor:
 lvgl:
   log_level: INFO
   color_depth: 16
-  bg_color: 0x000000
+  bg_color: 0x080C14
   text_font: montserrat_20
   widgets:
-    # --- Header: Clock + Temperature ---
-    - label:
-        id: label_clock
-        x: 20
-        y: 15
-        text: "--:--"
-        text_font: montserrat_48
-        text_color: 0x00BCD4
-    - label:
-        id: label_weather_temp
-        x: 570
-        y: 15
-        text: "--°C"
-        text_font: montserrat_48
-        text_color: 0xFFA726
-    # --- Date ---
-    - label:
-        id: label_date
-        x: 250
-        y: 85
-        text: "..."
-        text_font: montserrat_20
-        text_color: 0x9E9E9E
-    # --- Divider 1 ---
+
+    # ── HEADER ─────────────────────────────────────────────────────────────────
     - obj:
-        x: 20
-        y: 120
-        width: 760
-        height: 2
-        bg_color: 0x666666
+        x: 0
+        y: 0
+        width: 800
+        height: 112
+        bg_color: 0x0D1B2E
+        radius: 0
         border_width: 0
         pad_all: 0
-    # --- Strom ---
-    - label:
-        x: 20
-        y: 135
-        text: "Gesamt:"
-        text_color: 0xEF5350
-    - label:
-        id: val_gesamt
-        x: 170
-        y: 135
-        text: "-- kW"
-        text_color: 0xEEEEEE
-    - label:
-        x: 420
-        y: 135
-        text: "- WP:"
-        text_color: 0xEF5350
-    - label:
-        id: val_hauswp
-        x: 570
-        y: 135
-        text: "-- kW"
-        text_color: 0xEEEEEE
-    - label:
-        x: 20
-        y: 175
-        text: "PV:"
-        text_color: 0xFFD54F
-    - label:
-        id: val_pv
-        x: 170
-        y: 175
-        text: "-- kW"
-        text_color: 0xEEEEEE
-    - label:
-        x: 420
-        y: 175
-        text: "Akku:"
-        text_color: 0xFFD54F
-    - label:
-        id: val_akku
-        x: 570
-        y: 175
-        text: "-- %"
-        text_color: 0xEEEEEE
-    - label:
-        x: 20
-        y: 215
-        text: "Netz:"
-        text_color: 0xEF5350
-    - label:
-        id: val_netz
-        x: 170
-        y: 215
-        text: "-- kW"
-        text_color: 0xEEEEEE
-    - label:
-        x: 420
-        y: 215
-        text: "Ein.:"
-        text_color: 0xEF5350
-    - label:
-        id: val_eingespeist
-        x: 570
-        y: 215
-        text: "-- kW"
-        text_color: 0xEEEEEE
-    # --- Divider 2 ---
+        widgets:
+          - label:
+              id: label_clock
+              x: 25
+              y: 10
+              text: "--:--"
+              text_font: montserrat_48
+              text_color: 0x00BCD4
+          - label:
+              id: label_date
+              x: 25
+              y: 72
+              text: "..."
+              text_font: montserrat_20
+              text_color: 0x546E7A
+          - label:
+              id: label_weather_temp
+              x: 555
+              y: 10
+              width: 220
+              text: "--°C"
+              text_font: montserrat_48
+              text_color: 0xFFA726
+              text_align: right
+
+    # ── CARD 1 · ENERGIE ───────────────────────────────────────────────────────
     - obj:
-        x: 20
-        y: 250
-        width: 760
-        height: 2
-        bg_color: 0x666666
-        border_width: 0
+        x: 8
+        y: 118
+        width: 784
+        height: 138
+        bg_color: 0x0F1923
+        radius: 10
+        border_width: 1
+        border_color: 0x1E3348
         pad_all: 0
-    # --- Heute ---
-    - label:
-        x: 20
-        y: 265
-        text: "Heute:"
-        text_color: 0xEF5350
-    - label:
-        id: val_heute
-        x: 170
-        y: 265
-        text: "-- kWh"
-        text_color: 0xEEEEEE
-    - label:
-        x: 420
-        y: 265
-        text: "WP:"
-        text_color: 0xEF5350
-    - label:
-        id: val_tag_wp
-        x: 570
-        y: 265
-        text: "-- kWh"
-        text_color: 0xEEEEEE
-    - label:
-        x: 20
-        y: 305
-        text: "PV:"
-        text_color: 0xFFD54F
-    - label:
-        id: val_pv_heute
-        x: 170
-        y: 305
-        text: "-- kWh"
-        text_color: 0xEEEEEE
-    - label:
-        x: 420
-        y: 305
-        text: "Ein.:"
-        text_color: 0xEF5350
-    - label:
-        id: val_ein_heute
-        x: 570
-        y: 305
-        text: "-- kWh"
-        text_color: 0xEEEEEE
-    # --- Divider 3 ---
+        widgets:
+          - obj:
+              x: 0
+              y: 0
+              width: 4
+              height: 138
+              bg_color: 0xEF5350
+              radius: 0
+              border_width: 0
+          - label:
+              x: 14
+              y: 7
+              text: "ENERGIE"
+              text_font: montserrat_14
+              text_color: 0x37474F
+          - label:
+              x: 14
+              y: 32
+              text: "Gesamt:"
+              text_color: 0xEF9A9A
+          - label:
+              id: val_gesamt
+              x: 165
+              y: 32
+              text: "-- kW"
+              text_color: 0xECEFF1
+          - label:
+              x: 405
+              y: 32
+              text: "- WP:"
+              text_color: 0xEF9A9A
+          - label:
+              id: val_hauswp
+              x: 565
+              y: 32
+              text: "-- kW"
+              text_color: 0xECEFF1
+          - label:
+              x: 14
+              y: 68
+              text: "PV:"
+              text_color: 0xFFD54F
+          - label:
+              id: val_pv
+              x: 165
+              y: 68
+              text: "-- kW"
+              text_color: 0xECEFF1
+          - label:
+              x: 405
+              y: 68
+              text: "Akku:"
+              text_color: 0x66BB6A
+          - label:
+              id: val_akku
+              x: 565
+              y: 68
+              text: "-- %"
+              text_color: 0xECEFF1
+          - label:
+              x: 14
+              y: 104
+              text: "Netz:"
+              text_color: 0xEF9A9A
+          - label:
+              id: val_netz
+              x: 165
+              y: 104
+              text: "-- kW"
+              text_color: 0xECEFF1
+          - label:
+              x: 405
+              y: 104
+              text: "Ein.:"
+              text_color: 0x66BB6A
+          - label:
+              id: val_eingespeist
+              x: 565
+              y: 104
+              text: "-- kW"
+              text_color: 0xECEFF1
+
+    # ── CARD 2 · HEUTE ─────────────────────────────────────────────────────────
     - obj:
-        x: 20
-        y: 340
-        width: 760
-        height: 2
-        bg_color: 0x666666
-        border_width: 0
+        x: 8
+        y: 262
+        width: 784
+        height: 95
+        bg_color: 0x0F1923
+        radius: 10
+        border_width: 1
+        border_color: 0x1E3348
         pad_all: 0
-    # --- Warmwasser ---
-    - label:
-        x: 20
-        y: 358
-        text: "Wasser:"
-        text_color: 0xEF5350
-    - label:
-        id: val_wasser
-        x: 170
-        y: 358
-        text: "-- C"
-        text_color: 0xEEEEEE
-    - label:
-        x: 420
-        y: 358
-        text: "Zyklen:"
-        text_color: 0xEF5350
-    - label:
-        id: val_zyklen
-        x: 570
-        y: 358
-        text: "--"
-        text_color: 0xEEEEEE
-    # --- Auto ---
-    - label:
-        x: 20
-        y: 398
-        text: "Buzz:"
-        text_color: 0x42A5F5
-    - label:
-        id: val_buzz
-        x: 170
-        y: 398
-        text: "-- %"
-        text_color: 0xEEEEEE
-    - label:
-        x: 420
-        y: 398
-        text: "Gesamt:"
-        text_color: 0x42A5F5
-    - label:
-        id: val_buzz_gesamt
-        x: 570
-        y: 398
-        text: "-- mWh"
-        text_color: 0xEEEEEE
+        widgets:
+          - obj:
+              x: 0
+              y: 0
+              width: 4
+              height: 95
+              bg_color: 0xFFD54F
+              radius: 0
+              border_width: 0
+          - label:
+              x: 14
+              y: 7
+              text: "HEUTE"
+              text_font: montserrat_14
+              text_color: 0x37474F
+          - label:
+              x: 14
+              y: 32
+              text: "Heute:"
+              text_color: 0xEF9A9A
+          - label:
+              id: val_heute
+              x: 165
+              y: 32
+              text: "-- kWh"
+              text_color: 0xECEFF1
+          - label:
+              x: 405
+              y: 32
+              text: "WP:"
+              text_color: 0xEF9A9A
+          - label:
+              id: val_tag_wp
+              x: 565
+              y: 32
+              text: "-- kWh"
+              text_color: 0xECEFF1
+          - label:
+              x: 14
+              y: 65
+              text: "PV:"
+              text_color: 0xFFD54F
+          - label:
+              id: val_pv_heute
+              x: 165
+              y: 65
+              text: "-- kWh"
+              text_color: 0xECEFF1
+          - label:
+              x: 405
+              y: 65
+              text: "Ein.:"
+              text_color: 0x66BB6A
+          - label:
+              id: val_ein_heute
+              x: 565
+              y: 65
+              text: "-- kWh"
+              text_color: 0xECEFF1
+
+    # ── CARD 3 · WP & AUTO ─────────────────────────────────────────────────────
+    - obj:
+        x: 8
+        y: 363
+        width: 784
+        height: 112
+        bg_color: 0x0F1923
+        radius: 10
+        border_width: 1
+        border_color: 0x1E3348
+        pad_all: 0
+        widgets:
+          - obj:
+              x: 0
+              y: 0
+              width: 4
+              height: 112
+              bg_color: 0x42A5F5
+              radius: 0
+              border_width: 0
+          - label:
+              x: 14
+              y: 7
+              text: "WP & AUTO"
+              text_font: montserrat_14
+              text_color: 0x37474F
+          - label:
+              x: 14
+              y: 35
+              text: "Wasser:"
+              text_color: 0xEF9A9A
+          - label:
+              id: val_wasser
+              x: 165
+              y: 35
+              text: "-- C"
+              text_color: 0xECEFF1
+          - label:
+              x: 405
+              y: 35
+              text: "Zyklen:"
+              text_color: 0xEF9A9A
+          - label:
+              id: val_zyklen
+              x: 565
+              y: 35
+              text: "--"
+              text_color: 0xECEFF1
+          - label:
+              x: 14
+              y: 75
+              text: "Buzz:"
+              text_color: 0x42A5F5
+          - label:
+              id: val_buzz
+              x: 165
+              y: 75
+              text: "-- %"
+              text_color: 0xECEFF1
+          - label:
+              x: 405
+              y: 75
+              text: "Gesamt:"
+              text_color: 0x42A5F5
+          - label:
+              id: val_buzz_gesamt
+              x: 565
+              y: 75
+              text: "-- mWh"
+              text_color: 0xECEFF1
