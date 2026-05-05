@@ -6,10 +6,6 @@ esp32:
   board: esp32-s3-devkitc-1
   framework:
     type: esp-idf
-    sdkconfig_options:
-      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
-      CONFIG_LCD_RGB_ISR_IRAM_SAFE: "y"
-      CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY: "y"
 
 psram:
   mode: octal
@@ -257,6 +253,7 @@ lvgl:
   color_depth: 16
   bg_color: 0x080C14
   buffer_size: 100%
+  full_refresh: true
   text_font: montserrat_20
   widgets:
 
