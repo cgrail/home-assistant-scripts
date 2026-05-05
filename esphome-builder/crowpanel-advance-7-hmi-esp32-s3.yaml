@@ -332,7 +332,7 @@ lvgl:
           - label:
               x: 405
               y: 32
-              text: "- WP:"
+              text: "Haus ohne WP:"
               text_color: 0xEF9A9A
           - label:
               id: val_hauswp
@@ -365,7 +365,7 @@ lvgl:
           - label:
               x: 14
               y: 104
-              text: "Netz:"
+              text: "Netzbezug:"
               text_color: 0xEF9A9A
           - label:
               id: val_netz
@@ -376,7 +376,7 @@ lvgl:
           - label:
               x: 405
               y: 104
-              text: "Ein.:"
+              text: "Einspeisung:"
               text_color: 0x66BB6A
           - label:
               id: val_eingespeist
@@ -414,7 +414,7 @@ lvgl:
           - label:
               x: 14
               y: 32
-              text: "Heute:"
+              text: "Netzbezug heute:"
               text_color: 0xEF9A9A
           - label:
               id: val_heute
@@ -425,7 +425,7 @@ lvgl:
           - label:
               x: 405
               y: 32
-              text: "WP:"
+              text: "WP Heute:"
               text_color: 0xEF9A9A
           - label:
               id: val_tag_wp
@@ -436,7 +436,7 @@ lvgl:
           - label:
               x: 14
               y: 65
-              text: "PV:"
+              text: "PV Heute:"
               text_color: 0xFFD54F
           - label:
               id: val_pv_heute
@@ -447,7 +447,7 @@ lvgl:
           - label:
               x: 405
               y: 65
-              text: "Ein.:"
+              text: "Heute eingespeist.:"
               text_color: 0x66BB6A
           - label:
               id: val_ein_heute
