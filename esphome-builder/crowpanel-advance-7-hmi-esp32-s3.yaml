@@ -247,7 +247,7 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: label_weather_temp
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.0f °C", x); return std::string(buf);'
+          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.0f \xc2\xb0C", x); return std::string(buf);'
 
 
 font:
@@ -255,6 +255,10 @@ font:
     id: montserrat_14_de
     size: 14
     glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyzäöüÄÖÜß"
+  - file: "gfonts://Montserrat"
+    id: montserrat_48_temp
+    size: 48
+    glyphs: " 0123456789.-°C"
 
 lvgl:
   log_level: INFO
@@ -297,7 +301,7 @@ lvgl:
               y: 10
               width: 100
               text: "-- °C"
-              text_font: montserrat_48
+              text_font: montserrat_48_temp
               text_color: 0x38BDF8 # Light Blue
               text_align: right
 
@@ -437,7 +441,7 @@ lvgl:
               x: 320
               y: 45
               text: "Wärmepumpe"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0x38BDF8
           - label:
               id: val_tag_wp
@@ -519,7 +523,7 @@ lvgl:
               x: 15
               y: 12
               text: "GERÄTE & FAHRZEUG"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0x94A3B8
               
           - label:
