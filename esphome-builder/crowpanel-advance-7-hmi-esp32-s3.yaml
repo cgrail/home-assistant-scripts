@@ -54,7 +54,7 @@ i2c:
   id: bus_a
 
 display:
-  - platform: rpi_dpi_rgb
+  - platform: mipi_rgb
     id: main_display
     color_order: RGB
     invert_colors: true
