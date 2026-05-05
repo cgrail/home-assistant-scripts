@@ -33,11 +33,28 @@ wifi:
     password: "k9up9gRvf6ri"
 
 captive_portal:
-    
+switch:
+  - platform: template
+    name: "Backlight Power"
+    id: backlight_switch
+    turn_on_action:
+      - lambda: |-
+          uint8_t cmd[1] = { 0 };
+          id(bus_a).write(0x30, cmd, 1);
+    turn_off_action:
+      - lambda: |-
+          uint8_t cmd[1] = { 245 };
+          id(bus_a).write(0x30, cmd, 1);
 
+
+i2c:
+  sda: 15
+  scl: 16
+  scan: true
+  id: bus_a
 
 display:
-  - platform: mipi_rgb
+  - platform: rpi_dpi_rgb
     id: main_display
     color_order: RGB
     invert_colors: true
