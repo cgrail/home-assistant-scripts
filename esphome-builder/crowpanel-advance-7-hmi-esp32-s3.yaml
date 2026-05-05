@@ -1,0 +1,105 @@
+esphome:
+  name: crowpanel-advance-7-hmi
+  friendly_name: CrowPanel Advance 7 HMI| ESP32-S3
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "UfpvcAWF+sV5++k0lwU1Yy200QUIrcqmxUvIcI4Ux8g="
+
+ota:
+  - platform: esphome
+    password: "e5618d93a59a898fc767c978134dd58c"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Crowpanel-Advance-7-Hmi-Esp32-S3"
+    password: "k9up9gRvf6ri"
+
+captive_portal:
+    
+
+
+display:
+  - platform: mipi_rgb
+    id: main_display
+    color_order: RGB
+    invert_colors: true
+    update_interval: never
+    auto_clear_enabled: false
+    dimensions:
+      width: 800
+      height: 480
+    de_pin: 42
+    hsync_pin: 40
+    vsync_pin: 41
+    pclk_pin: 39
+    pclk_frequency: 20MHz
+    hsync_pulse_width: 4
+    hsync_front_porch: 8
+    hsync_back_porch: 8
+    vsync_pulse_width: 4
+    vsync_front_porch: 8
+    vsync_back_porch: 8
+    data_pins:
+      red:
+        - 7
+        - 17
+        - 18
+        - 3
+        - 46
+      green:
+        - 9
+        - 10
+        - 11
+        - 12
+        - 13
+        - 14
+      blue:
+        - 21
+        - 47
+        - 48
+        - 45
+        - 38
+
+time:
+  - platform: homeassistant
+    id: time_comp
+
+lvgl:
+  log_level: INFO
+  color_depth: 16
+  bg_color: 0xFFFFFF
+  text_font: montserrat_26
+  widgets:
+    - label:
+        id: label_temp
+        x: 90
+        y: 350
+        text: "Temp: --°C"
+    - label:
+        id: label_hum
+        x: 350
+        y: 350
+        text: "Humi: --%"
+    - label:
+        id: label_light_state
+        x: 650
+        y: 350
+        text: "OFF"
