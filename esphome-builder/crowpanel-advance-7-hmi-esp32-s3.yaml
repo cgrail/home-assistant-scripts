@@ -247,7 +247,7 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: label_weather_temp
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.0f \xc2\xb0C", x); return std::string(buf);'
+          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.0f \xc2\xb0" "C", x); return std::string(buf);'
 
 
 font:
@@ -299,7 +299,7 @@ lvgl:
               id: label_weather_temp
               x: 600
               y: 10
-              width: 200
+              width: 150
               text: "-- °C"
               text_font: montserrat_48_temp
               text_color: 0x38BDF8 # Light Blue
