@@ -102,7 +102,7 @@ time:
 lvgl:
   log_level: INFO
   color_depth: 16
-  bg_color: 0xFFFFFF
+  bg_color: 0x000000
   text_font: montserrat_26
   widgets:
     - label:
@@ -110,13 +110,16 @@ lvgl:
         x: 90
         y: 350
         text: "Temp: --°C"
+        text_color: 0xFFFFFF
     - label:
         id: label_hum
         x: 350
         y: 350
         text: "Humi: --%"
+        text_color: 0xFFFFFF
     - label:
         id: label_light_state
         x: 650
         y: 350
         text: "OFF"
+        text_color: 0xFFFFFF
