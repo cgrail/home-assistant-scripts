@@ -238,7 +238,7 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_buzz_gesamt
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f mWh", x); return std::string(buf);'
+          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f MWh", x); return std::string(buf);'
 
   - platform: homeassistant
     id: weather_temperature
@@ -253,7 +253,8 @@ sensor:
 lvgl:
   log_level: INFO
   color_depth: 16
-  bg_color: 0x080C14
+  # Very dark slate background for the whole screen
+  bg_color: 0x0B1120 
   buffer_size: 100%
   full_refresh: true
   text_font: montserrat_20
@@ -264,281 +265,305 @@ lvgl:
         x: 0
         y: 0
         width: 800
-        height: 112
-        bg_color: 0x0D1B2E
+        height: 70
+        bg_color: 0x0B1120
         radius: 0
         border_width: 0
         pad_all: 0
         widgets:
           - label:
               id: label_clock
-              x: 25
+              x: 20
               y: 10
               text: "--:--"
               text_font: montserrat_48
-              text_color: 0x00BCD4
+              text_color: 0xE2E8F0 # Bright Slate
           - label:
               id: label_date
-              x: 25
-              y: 72
+              x: 160
+              y: 32
               text: "..."
               text_font: montserrat_20
-              text_color: 0x546E7A
+              text_color: 0x64748B # Muted Slate
           - label:
               id: label_weather_temp
-              x: 555
+              x: 680
               y: 10
-              width: 220
+              width: 100
               text: "-- °C"
               text_font: montserrat_48
-              text_color: 0xFFA726
+              text_color: 0x38BDF8 # Light Blue
               text_align: right
 
-    # ── CARD 1 · ENERGIE ───────────────────────────────────────────────────────
+    # ── COLUMN 1: CARD 1 · LIVE ENERGIE (Top Left) ─────────────────────────────
     - obj:
-        x: 8
-        y: 118
-        width: 784
-        height: 138
-        bg_color: 0x0F1923
-        radius: 10
+        x: 20
+        y: 80
+        width: 450
+        height: 180
+        bg_color: 0x151F32 # Slightly lighter card background
+        radius: 12
         border_width: 1
-        border_color: 0x1E3348
+        border_color: 0x1E293B
         pad_all: 0
         widgets:
-          - obj:
-              x: 0
-              y: 0
-              width: 4
-              height: 138
-              bg_color: 0xEF5350
-              radius: 0
-              border_width: 0
           - label:
-              x: 14
-              y: 7
-              text: "ENERGIE"
+              x: 15
+              y: 12
+              text: "LIVE BILANZ"
               text_font: montserrat_14
-              text_color: 0x37474F
+              text_color: 0x94A3B8
+              
+          # Row 1
           - label:
-              x: 14
-              y: 32
-              text: "Gesamt:"
-              text_color: 0xEF9A9A
-          - label:
-              id: val_gesamt
-              x: 200
-              y: 32
-              text: "-- kW"
-              text_color: 0xECEFF1
-          - label:
-              x: 405
-              y: 32
-              text: "Haus ohne WP:"
-              text_color: 0xEF9A9A
-          - label:
-              id: val_hauswp
-              x: 600
-              y: 32
-              text: "-- kW"
-              text_color: 0xECEFF1
-          - label:
-              x: 14
-              y: 68
-              text: "PV:"
-              text_color: 0xFFD54F
+              x: 15
+              y: 45
+              text: "PV Erzeugung"
+              text_font: montserrat_14
+              text_color: 0xFBBF24 # Solar Yellow
           - label:
               id: val_pv
-              x: 200
-              y: 68
+              x: 15
+              y: 65
               text: "-- kW"
-              text_color: 0xECEFF1
+              text_color: 0xF8FAFC
+              
           - label:
-              x: 405
-              y: 68
-              text: "Akku:"
-              text_color: 0x66BB6A
+              x: 170
+              y: 45
+              text: "Netzbezug"
+              text_font: montserrat_14
+              text_color: 0xF87171 # Red
           - label:
-              id: val_akku
-              x: 600
-              y: 68
-              text: "-- %"
-              text_color: 0xECEFF1
+              id: val_netz
+              x: 170
+              y: 65
+              text: "-- kW"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 320
+              y: 45
+              text: "Haus Gesamt"
+              text_font: montserrat_14
+              text_color: 0x38BDF8 # Blue
+          - label:
+              id: val_gesamt
+              x: 320
+              y: 65
+              text: "-- kW"
+              text_color: 0xF8FAFC
+
+          # Row 2
+          - label:
+              x: 15
+              y: 110
+              text: "Einspeisung"
+              text_font: montserrat_14
+              text_color: 0x4ADE80 # Green
+          - label:
+              id: val_eingespeist
+              x: 15
+              y: 130
+              text: "-- kW"
+              text_color: 0xF8FAFC
+              
+          - label:
+              x: 170
+              y: 110
+              text: "Haus ohne WP"
+              text_font: montserrat_14
+              text_color: 0x94A3B8 
+          - label:
+              id: val_hauswp
+              x: 170
+              y: 130
+              text: "-- kW"
+              text_color: 0xF8FAFC
+
+    # ── COLUMN 1: CARD 2 · HEUTE (Bottom Left) ─────────────────────────────────
+    - obj:
+        x: 20
+        y: 280
+        width: 450
+        height: 180
+        bg_color: 0x151F32
+        radius: 12
+        border_width: 1
+        border_color: 0x1E293B
+        pad_all: 0
+        widgets:
+          - label:
+              x: 15
+              y: 12
+              text: "HEUTE"
+              text_font: montserrat_14
+              text_color: 0x94A3B8
+              
+          # Row 1
+          - label:
+              x: 15
+              y: 45
+              text: "PV Produktion"
+              text_font: montserrat_14
+              text_color: 0xFBBF24
+          - label:
+              id: val_pv_heute
+              x: 15
+              y: 65
+              text: "-- kWh"
+              text_color: 0xF8FAFC
+              
+          - label:
+              x: 170
+              y: 45
+              text: "Netzbezug"
+              text_font: montserrat_14
+              text_color: 0xF87171
+          - label:
+              id: val_heute
+              x: 170
+              y: 65
+              text: "-- kWh"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 320
+              y: 45
+              text: "Wärmepumpe"
+              text_font: montserrat_14
+              text_color: 0x38BDF8
+          - label:
+              id: val_tag_wp
+              x: 320
+              y: 65
+              text: "-- kWh"
+              text_color: 0xF8FAFC
+
+          # Row 2
+          - label:
+              x: 15
+              y: 110
+              text: "Eingespeist"
+              text_font: montserrat_14
+              text_color: 0x4ADE80
+          - label:
+              id: val_ein_heute
+              x: 15
+              y: 130
+              text: "-- kWh"
+              text_color: 0xF8FAFC
+
+    # ── COLUMN 2: CARD 3 · BATTERIE HERO (Top Right) ───────────────────────────
+    - obj:
+        x: 490
+        y: 80
+        width: 290
+        height: 220
+        bg_color: 0x151F32
+        radius: 12
+        border_width: 1
+        border_color: 0x1E293B
+        pad_all: 0
+        widgets:
+          - label:
+              x: 15
+              y: 12
+              text: "HAUSAKKU"
+              text_font: montserrat_14
+              text_color: 0x94A3B8
+          # The Arc is centered
           - arc:
               id: arc_akku
-              x: 690
-              y: 29
-              width: 80
-              height: 80
+              x: 75
+              y: 50
+              width: 140
+              height: 140
               value: 0
               min_value: 0
               max_value: 100
-              arc_color: 0x1E3348
-              arc_width: 6
+              arc_color: 0x1E293B
+              arc_width: 12
               indicator:
-                arc_color: 0x66BB6A
-                arc_width: 6
+                arc_color: 0x4ADE80
+                arc_width: 12
+          # Value text is positioned inside the arc!
           - label:
-              x: 14
-              y: 104
-              text: "Netzbezug:"
-              text_color: 0xEF9A9A
-          - label:
-              id: val_netz
-              x: 200
-              y: 104
-              text: "-- kW"
-              text_color: 0xECEFF1
-          - label:
-              x: 405
-              y: 104
-              text: "Einspeisung:"
-              text_color: 0x66BB6A
-          - label:
-              id: val_eingespeist
-              x: 600
-              y: 104
-              text: "-- kW"
-              text_color: 0xECEFF1
-
-    # ── CARD 2 · HEUTE ─────────────────────────────────────────────────────────
+              id: val_akku
+              x: 75
+              y: 105 # Vertically centered in the arc
+              width: 140
+              text: "-- %"
+              text_color: 0xF8FAFC
+              text_align: center
+              
+    # ── COLUMN 2: CARD 4 · WP & AUTO (Bottom Right) ────────────────────────────
     - obj:
-        x: 8
-        y: 262
-        width: 784
-        height: 95
-        bg_color: 0x0F1923
-        radius: 10
+        x: 490
+        y: 320
+        width: 290
+        height: 140
+        bg_color: 0x151F32
+        radius: 12
         border_width: 1
-        border_color: 0x1E3348
+        border_color: 0x1E293B
         pad_all: 0
         widgets:
-          - obj:
-              x: 0
-              y: 0
-              width: 4
-              height: 95
-              bg_color: 0xFFD54F
-              radius: 0
-              border_width: 0
           - label:
-              x: 14
-              y: 7
-              text: "HEUTE"
+              x: 15
+              y: 12
+              text: "GERÄTE & FAHRZEUG"
               text_font: montserrat_14
-              text_color: 0x37474F
+              text_color: 0x94A3B8
+              
           - label:
-              x: 14
-              y: 32
-              text: "Netzbezug heute:"
-              text_color: 0xEF9A9A
-          - label:
-              id: val_heute
-              x: 200
-              y: 32
-              text: "-- kWh"
-              text_color: 0xECEFF1
-          - label:
-              x: 405
-              y: 32
-              text: "WP Heute:"
-              text_color: 0xEF9A9A
-          - label:
-              id: val_tag_wp
-              x: 600
-              y: 32
-              text: "-- kWh"
-              text_color: 0xECEFF1
-          - label:
-              x: 14
-              y: 65
-              text: "PV Heute:"
-              text_color: 0xFFD54F
-          - label:
-              id: val_pv_heute
-              x: 200
-              y: 65
-              text: "-- kWh"
-              text_color: 0xECEFF1
-          - label:
-              x: 405
-              y: 65
-              text: "Heute eingespeist:"
-              text_color: 0x66BB6A
-          - label:
-              id: val_ein_heute
-              x: 600
-              y: 65
-              text: "-- kWh"
-              text_color: 0xECEFF1
-
-    # ── CARD 3 · WP & AUTO ─────────────────────────────────────────────────────
-    - obj:
-        x: 8
-        y: 363
-        width: 784
-        height: 112
-        bg_color: 0x0F1923
-        radius: 10
-        border_width: 1
-        border_color: 0x1E3348
-        pad_all: 0
-        widgets:
-          - obj:
-              x: 0
-              y: 0
-              width: 4
-              height: 112
-              bg_color: 0x42A5F5
-              radius: 0
-              border_width: 0
-          - label:
-              x: 14
-              y: 7
-              text: "WP & AUTO"
+              x: 15
+              y: 45
+              text: "Warmwasser"
               text_font: montserrat_14
-              text_color: 0x37474F
-          - label:
-              x: 14
-              y: 35
-              text: "Wasser:"
-              text_color: 0xEF9A9A
+              text_color: 0x94A3B8
           - label:
               id: val_wasser
-              x: 200
-              y: 35
+              x: 15
+              y: 65
               text: "-- °C"
-              text_color: 0xECEFF1
+              text_color: 0xF8FAFC
+
           - label:
-              x: 405
-              y: 35
-              text: "Zyklen:"
-              text_color: 0xEF9A9A
-          - label:
-              id: val_zyklen
-              x: 600
-              y: 35
-              text: "--"
-              text_color: 0xECEFF1
-          - label:
-              x: 14
-              y: 75
-              text: "Buzz:"
-              text_color: 0x42A5F5
+              x: 150
+              y: 45
+              text: "ID. Buzz Akku"
+              text_font: montserrat_14
+              text_color: 0x38BDF8
           - label:
               id: val_buzz
-              x: 200
-              y: 75
+              x: 150
+              y: 65
               text: "-- %"
-              text_color: 0xECEFF1
+              text_color: 0xF8FAFC
+
           - label:
-              x: 405
-              y: 75
-              text: "Gesamt:"
-              text_color: 0x42A5F5
+              x: 15
+              y: 95
+              text: "Heizzyklen"
+              text_font: montserrat_14
+              text_color: 0x94A3B8
+          - label:
+              id: val_zyklen
+              x: 15
+              y: 110
+              text: "--"
+              text_color: 0xF8FAFC
+              
+          - label:
+              x: 150
+              y: 95
+              text: "Buzz geladen"
+              text_font: montserrat_14
+              text_color: 0x94A3B8
           - label:
               id: val_buzz_gesamt
-              x: 600
-              y: 75
-              text: "-- mWh"
-              text_color: 0xECEFF1
+              x: 150
+              y: 110
+              text: "-- MWh"
+              text_color: 0xF8FAFC
