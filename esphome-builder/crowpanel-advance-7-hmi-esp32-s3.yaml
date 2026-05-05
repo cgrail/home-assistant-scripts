@@ -100,6 +100,68 @@ time:
     id: time_comp
 
 interval:
+  - interval: 1s
+    then:
+      - lvgl.label.update:
+          id: val_gesamt
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", id(gesamt_stromverbrauch).state); return std::string(buf);
+      - lvgl.label.update:
+          id: val_hauswp
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", id(hausverbrauch_ohne_wp).state); return std::string(buf);
+      - lvgl.label.update:
+          id: val_pv
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", id(pv).state / 1000.0); return std::string(buf);
+      - lvgl.label.update:
+          id: val_akku
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f %%", id(byd_battery_box_premium_hv_state_of_charge).state); return std::string(buf);
+      - lvgl.label.update:
+          id: val_netz
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", id(netzbezug).state / 1000.0); return std::string(buf);
+      - lvgl.label.update:
+          id: val_eingespeist
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", id(pv_eingespeist).state / 1000.0); return std::string(buf);
+      - lvgl.label.update:
+          id: val_heute
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", id(taglicher_stromverbrauch).state); return std::string(buf);
+      - lvgl.label.update:
+          id: val_tag_wp
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", id(tag_wp).state); return std::string(buf);
+      - lvgl.label.update:
+          id: val_pv_heute
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", id(tagliche_pv_produktion).state); return std::string(buf);
+      - lvgl.label.update:
+          id: val_ein_heute
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", id(taglich_eingespeist).state); return std::string(buf);
+      - lvgl.label.update:
+          id: val_wasser
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f C", id(ww_temperatur).state); return std::string(buf);
+      - lvgl.label.update:
+          id: val_zyklen
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.0f", id(heizzyklen).state); return std::string(buf);
+      - lvgl.label.update:
+          id: val_buzz
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.0f %%", id(buzz_battery_level).state); return std::string(buf);
+      - lvgl.label.update:
+          id: val_buzz_gesamt
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.1f mWh", id(buzz_gesamt_geladen).state); return std::string(buf);
+      - lvgl.label.update:
+          id: label_weather_temp
+          text: !lambda |-
+            char buf[20]; snprintf(buf, sizeof(buf), "%.0f°C", id(weather_temperature).state); return std::string(buf);
   - interval: 10s
     then:
       - lvgl.label.update:
@@ -124,124 +186,49 @@ sensor:
   - platform: homeassistant
     id: gesamt_stromverbrauch
     entity_id: sensor.gesamt_stromverbrauch_in_kwh
-    on_value:
-      - lvgl.label.update:
-          id: val_gesamt
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x); return std::string(buf);
   - platform: homeassistant
     id: hausverbrauch_ohne_wp
     entity_id: sensor.hausverbrauch_ohne_wp
-    on_value:
-      - lvgl.label.update:
-          id: val_hauswp
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x); return std::string(buf);
   - platform: homeassistant
     id: pv
     entity_id: sensor.solarnet_power_photovoltaics
-    on_value:
-      - lvgl.label.update:
-          id: val_pv
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);
   - platform: homeassistant
     id: byd_battery_box_premium_hv_state_of_charge
     entity_id: sensor.byd_battery_box_premium_hv_state_of_charge
-    on_value:
-      - lvgl.label.update:
-          id: val_akku
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f %%", x); return std::string(buf);
   - platform: homeassistant
     id: netzbezug
     entity_id: sensor.solarnet_power_grid_import
-    on_value:
-      - lvgl.label.update:
-          id: val_netz
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);
   - platform: homeassistant
     id: pv_eingespeist
     entity_id: sensor.solarnet_power_grid_export
-    on_value:
-      - lvgl.label.update:
-          id: val_eingespeist
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);
   - platform: homeassistant
     id: taglicher_stromverbrauch
     entity_id: sensor.taglicher_stromvebrauch
-    on_value:
-      - lvgl.label.update:
-          id: val_heute
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);
   - platform: homeassistant
     id: tag_wp
     entity_id: sensor.taglich_wp_gesamt
-    on_value:
-      - lvgl.label.update:
-          id: val_tag_wp
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);
   - platform: homeassistant
     id: tagliche_pv_produktion
     entity_id: sensor.tagliche_pv_produktion
-    on_value:
-      - lvgl.label.update:
-          id: val_pv_heute
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);
   - platform: homeassistant
     id: taglich_eingespeist
     entity_id: sensor.taglich_eingespeist
-    on_value:
-      - lvgl.label.update:
-          id: val_ein_heute
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);
   - platform: homeassistant
     id: ww_temperatur
     entity_id: sensor.hybrox_11_grail_dhw
-    on_value:
-      - lvgl.label.update:
-          id: val_wasser
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f C", x); return std::string(buf);
   - platform: homeassistant
     id: heizzyklen
     entity_id: sensor.tagliche_wp_heizzyklen
-    on_value:
-      - lvgl.label.update:
-          id: val_zyklen
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.0f", x); return std::string(buf);
   - platform: homeassistant
     id: buzz_battery_level
     entity_id: sensor.buzz_battery_level
-    on_value:
-      - lvgl.label.update:
-          id: val_buzz
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.0f %%", x); return std::string(buf);
   - platform: homeassistant
     id: buzz_gesamt_geladen
     entity_id: sensor.wattpilot_gesamt
-    on_value:
-      - lvgl.label.update:
-          id: val_buzz_gesamt
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.1f mWh", x); return std::string(buf);
   - platform: homeassistant
     id: weather_temperature
     entity_id: weather.forecast_home
     attribute: temperature
-    on_value:
-      - lvgl.label.update:
-          id: label_weather_temp
-          text: !lambda |-
-            char buf[20]; snprintf(buf, sizeof(buf), "%.0f°C", x); return std::string(buf);
 
 lvgl:
   log_level: INFO
