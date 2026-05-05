@@ -73,7 +73,7 @@ display:
     hsync_pin: 40
     vsync_pin: 41
     pclk_pin: 39
-    pclk_frequency: 20MHz
+    pclk_frequency: 16MHz
     hsync_pulse_width: 4
     hsync_front_porch: 8
     hsync_back_porch: 8
@@ -250,13 +250,19 @@ sensor:
           text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.0f °C", x); return std::string(buf);'
 
 
+font:
+  - file: "gfonts://Montserrat"
+    id: montserrat_14_de
+    size: 14
+    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyzäöüÄÖÜß"
+
 lvgl:
   log_level: INFO
   color_depth: 16
   # Very dark slate background for the whole screen
   bg_color: 0x0B1120 
-  buffer_size: 100%
-  full_refresh: true
+  buffer_size: 25%
+  full_refresh: false
   text_font: montserrat_20
   widgets:
 
@@ -287,7 +293,7 @@ lvgl:
               text_color: 0x64748B # Muted Slate
           - label:
               id: label_weather_temp
-              x: 680
+              x: 650
               y: 10
               width: 100
               text: "-- °C"
