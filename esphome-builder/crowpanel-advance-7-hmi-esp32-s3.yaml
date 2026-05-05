@@ -47,6 +47,10 @@ switch:
           id(bus_a).write(0x30, cmd, 1);
 
 
+spi:
+  clk_pin: 1
+  mosi_pin: 2
+
 i2c:
   sda: 15
   scl: 16
@@ -56,6 +60,8 @@ i2c:
 display:
   - platform: mipi_rgb
     id: main_display
+    model: custom
+    init_sequence: []
     color_order: RGB
     invert_colors: true
     update_interval: never
