@@ -89,6 +89,7 @@ time:
   - platform: homeassistant
     id: time_comp
 
+# Only update the clock on an interval now
 interval:
   - interval: 1s
     then:
@@ -182,9 +183,6 @@ sensor:
       - lvgl.label.update:
           id: val_heute
           text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);'
-      - lvgl.label.update:
-          id: val_heute_bottom
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);'
 
   - platform: homeassistant
     id: tag_wp
@@ -201,9 +199,6 @@ sensor:
       - lvgl.label.update:
           id: val_pv_heute
           text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);'
-      - lvgl.label.update:
-          id: val_pv_bottom
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);'
 
   - platform: homeassistant
     id: taglich_eingespeist
@@ -211,9 +206,6 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_ein_heute
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);'
-      - lvgl.label.update:
-          id: val_ein_bottom
           text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);'
 
   - platform: homeassistant
@@ -318,7 +310,7 @@ lvgl:
         x: 20
         y: 80
         width: 450
-        height: 140
+        height: 180
         bg_color: 0x151F32 # Slightly lighter card background
         radius: 12
         border_width: 1
@@ -378,36 +370,36 @@ lvgl:
 
           - label:
               x: 15
-              y: 92
+              y: 110
               text: "Haus Gesamt"
               text_font: montserrat_14
               text_color: 0x38BDF8 # Blue
           - label:
               id: val_gesamt
               x: 15
-              y: 108
+              y: 130
               text: "-- kW"
               text_color: 0xF8FAFC
 
           - label:
               x: 170
-              y: 92
+              y: 110
               text: "Haus ohne WP"
               text_font: montserrat_14
-              text_color: 0x94A3B8
+              text_color: 0x94A3B8 
           - label:
               id: val_hauswp
               x: 170
-              y: 108
+              y: 130
               text: "-- kW"
               text_color: 0xF8FAFC
 
     # ── COLUMN 1: CARD 2 · HEUTE (Bottom Left) ─────────────────────────────────
     - obj:
         x: 20
-        y: 230
+        y: 280
         width: 450
-        height: 140
+        height: 180
         bg_color: 0x151F32
         radius: 12
         border_width: 1
@@ -464,14 +456,14 @@ lvgl:
           # Row 2
           - label:
               x: 15
-              y: 92
+              y: 110
               text: "Eingespeist"
               text_font: montserrat_14
               text_color: 0x4ADE80
           - label:
               id: val_ein_heute
               x: 15
-              y: 108
+              y: 130
               text: "-- kWh"
               text_color: 0xF8FAFC
 
@@ -480,7 +472,7 @@ lvgl:
         x: 490
         y: 80
         width: 290
-        height: 175
+        height: 220
         bg_color: 0x151F32
         radius: 12
         border_width: 1
@@ -496,10 +488,10 @@ lvgl:
           # The Arc is centered
           - arc:
               id: arc_akku
-              x: 80
-              y: 30
-              width: 130
-              height: 130
+              x: 75
+              y: 50
+              width: 140
+              height: 140
               value: 0
               min_value: 0
               max_value: 100
@@ -511,9 +503,9 @@ lvgl:
           # Value text is positioned inside the arc!
           - label:
               id: val_akku
-              x: 80
-              y: 88
-              width: 130
+              x: 75
+              y: 105 # Vertically centered in the arc
+              width: 140
               text: "-- %"
               text_color: 0xF8FAFC
               text_align: center
@@ -521,9 +513,9 @@ lvgl:
     # ── COLUMN 2: CARD 4 · WP & AUTO (Bottom Right) ────────────────────────────
     - obj:
         x: 490
-        y: 265
+        y: 320
         width: 290
-        height: 105
+        height: 140
         bg_color: 0x151F32
         radius: 12
         border_width: 1
@@ -539,107 +531,52 @@ lvgl:
               
           - label:
               x: 15
-              y: 32
+              y: 45
               text: "Warmwasser"
               text_font: montserrat_14
               text_color: 0x94A3B8
           - label:
               id: val_wasser
               x: 15
-              y: 48
+              y: 65
               text: "-- °C"
               text_color: 0xF8FAFC
 
           - label:
               x: 150
-              y: 32
+              y: 45
               text: "ID. Buzz Akku"
               text_font: montserrat_14
               text_color: 0x38BDF8
           - label:
               id: val_buzz
               x: 150
-              y: 48
+              y: 65
               text: "-- %"
               text_color: 0xF8FAFC
 
           - label:
               x: 15
-              y: 72
+              y: 95
               text: "Heizzyklen"
               text_font: montserrat_14
               text_color: 0x94A3B8
           - label:
               id: val_zyklen
               x: 15
-              y: 86
+              y: 110
               text: "--"
               text_color: 0xF8FAFC
-
+              
           - label:
               x: 150
-              y: 72
+              y: 95
               text: "Buzz geladen"
               text_font: montserrat_14
               text_color: 0x94A3B8
           - label:
               id: val_buzz_gesamt
               x: 150
-              y: 86
+              y: 110
               text: "-- MWh"
-              text_color: 0xF8FAFC
-
-    # ── BOTTOM BAR · TAGESWERTE ZUSAMMENFASSUNG ─────────────────────────────────
-    - obj:
-        x: 20
-        y: 380
-        width: 760
-        height: 90
-        bg_color: 0x151F32
-        radius: 12
-        border_width: 1
-        border_color: 0x1E293B
-        pad_all: 0
-        widgets:
-          - label:
-              x: 15
-              y: 8
-              text: "TAGESBILANZ"
-              text_font: montserrat_14
-              text_color: 0x94A3B8
-          - label:
-              x: 15
-              y: 38
-              text: "PV heute"
-              text_font: montserrat_14
-              text_color: 0xFBBF24
-          - label:
-              id: val_pv_bottom
-              x: 15
-              y: 58
-              text: "-- kWh"
-              text_color: 0xF8FAFC
-          - label:
-              x: 210
-              y: 38
-              text: "Netzbezug heute"
-              text_font: montserrat_14
-              text_color: 0xF87171
-          - label:
-              id: val_heute_bottom
-              x: 210
-              y: 58
-              text: "-- kWh"
-              text_color: 0xF8FAFC
-          - label:
-              x: 420
-              y: 38
-              text: "Eingespeist heute"
-              text_font: montserrat_14
-              text_color: 0x4ADE80
-          - label:
-              id: val_ein_bottom
-              x: 420
-              y: 58
-              text: "-- kWh"
               text_color: 0xF8FAFC
