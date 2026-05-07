@@ -334,7 +334,7 @@ lvgl:
               text_font: montserrat_14_de
               text_color: 0x64748B
           - label:
-              x: 280
+              x: 250
               y: 40
               text: "Verspätung"
               text_font: montserrat_14_de
@@ -355,10 +355,10 @@ lvgl:
               text_color: 0x64748B
           - label:
               id: val_dep1_delay
-              x: 280
+              x: 250
               y: 65
               text: "--"
-              text_font: montserrat_14_de
+              text_font: montserrat_20_de
               text_color: 0x4ADE80
           - label:
               id: val_dep2_time
@@ -376,10 +376,10 @@ lvgl:
               text_color: 0x64748B
           - label:
               id: val_dep2_delay
-              x: 280
+              x: 250
               y: 113
               text: "--"
-              text_font: montserrat_14_de
+              text_font: montserrat_20_de
               text_color: 0x4ADE80
 
     # ── TOP RIGHT: TWO ARCS (AKKU + BUZZ) ──────────────────────────────────────
