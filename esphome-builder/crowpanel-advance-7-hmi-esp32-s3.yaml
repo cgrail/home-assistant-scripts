@@ -133,22 +133,6 @@ sensor:
           text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x); return std::string(buf);'
 
   - platform: homeassistant
-    id: pv
-    entity_id: sensor.solarnet_power_photovoltaics
-    filters:
-      - delta: 50
-    on_value:
-      - lvgl.label.update:
-          id: val_pv
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
-      - lvgl.label.update:
-          id: legend_pv
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
-      - lvgl.bar.update:
-          id: bar_pv
-          value: !lambda 'return (int)(x / 100.0);'
-
-  - platform: homeassistant
     id: byd_battery_box_premium_hv_state_of_charge
     entity_id: sensor.byd_battery_box_premium_hv_state_of_charge
     filters:
@@ -161,35 +145,6 @@ sensor:
       - lvgl.arc.update:
           id: arc_akku
           value: !lambda 'return x;'
-
-  - platform: homeassistant
-    id: netzbezug
-    entity_id: sensor.solarnet_power_grid_import
-    filters:
-      - delta: 50
-    on_value:
-      - lvgl.label.update:
-          id: val_netz
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
-      - lvgl.label.update:
-          id: legend_netz
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
-      - lvgl.bar.update:
-          id: bar_netz
-          value: !lambda 'return (int)(x / 100.0);'
-
-  - platform: homeassistant
-    id: pv_eingespeist
-    entity_id: sensor.solarnet_power_grid_export
-    filters:
-      - delta: 50
-    on_value:
-      - lvgl.label.update:
-          id: val_eingespeist
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
-      - lvgl.label.update:
-          id: legend_ein
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
 
   - platform: homeassistant
     id: taglicher_stromverbrauch
@@ -308,89 +263,9 @@ lvgl:
               text_align: right
 
     # ── TOP LEFT: POWER BARS ────────────────────────────────────────────────────
-    - obj:
-        x: 20
-        y: 80
-        width: 375
-        height: 185
-        bg_color: 0x151F32
-        radius: 12
-        border_width: 1
-        border_color: 0x1E293B
-        pad_all: 0
-        widgets:
-          # PV row
-          - label:
-              x: 15
-              y: 15
-              text: "PV Erzeugung"
-              text_font: montserrat_14
-              text_color: 0xFBBF24
-          - label:
-              id: legend_pv
-              x: 200
-              y: 15
-              width: 160
-              text: "-- kW"
-              text_font: montserrat_14
-              text_color: 0x38BDF8
-              text_align: right
-          - bar:
-              id: bar_pv
-              x: 15
-              y: 42
-              width: 345
-              height: 22
-              value: 0
-              min_value: 0
-              max_value: 100
-              bg_color: 0x1E293B
-              indicator:
-                bg_color: 0x38BDF8
-          # Netzbezug row
-          - label:
-              x: 15
-              y: 82
-              text: "Netzbezug"
-              text_font: montserrat_14
-              text_color: 0xF87171
-          - label:
-              id: legend_netz
-              x: 200
-              y: 82
-              width: 160
-              text: "-- kW"
-              text_font: montserrat_14
-              text_color: 0x94A3B8
-              text_align: right
-          - bar:
-              id: bar_netz
-              x: 15
-              y: 108
-              width: 345
-              height: 22
-              value: 0
-              min_value: 0
-              max_value: 100
-              bg_color: 0x1E293B
-              indicator:
-                bg_color: 0xF87171
-          # Einspeisung row
-          - label:
-              x: 15
-              y: 148
-              text: "Einspeisung"
-              text_font: montserrat_14
-              text_color: 0x4ADE80
-          - label:
-              id: legend_ein
-              x: 200
-              y: 148
-              width: 160
-              text: "-- kW"
-              text_font: montserrat_14
-              text_color: 0x4ADE80
-              text_align: right
+
+
+
 
     # ── TOP RIGHT: TWO ARCS (AKKU + BUZZ) ──────────────────────────────────────
     - obj:
