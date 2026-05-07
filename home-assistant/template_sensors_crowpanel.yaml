@@ -1,0 +1,18 @@
+- sensor:
+    - name: "Zuzenhausen Abfahrten ESPHome"
+      unique_id: zuzenhausen_abfahrten_esphome
+      state: >
+        {% set deps = state_attr('sensor.zuzenhausen_departures', 'next_departures') %}
+        {% if deps %}
+          {% set ns = namespace(result=[]) %}
+          {% for dep in (deps[:2]) %}
+            {% set ns.result = ns.result + [{
+              'departure_current': dep.departure_current | default('--'),
+              'delay': dep.delay | default(0),
+              'richtung': (dep.destination | default('--')).split(',')[0]
+            }] %}
+          {% endfor %}
+          {{ ns.result | tojson }}
+        {% else %}
+          []
+        {% endif %}
