@@ -118,7 +118,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_gesamt
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x); return std::string(buf);'
+          text:
+            format: "%.1f kW"
+            args: [x]
 
   - platform: homeassistant
     id: hausverbrauch_ohne_wp
@@ -126,7 +128,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_hauswp
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x); return std::string(buf);'
+          text:
+            format: "%.1f kW"
+            args: [x]
 
   - platform: homeassistant
     id: byd_battery_box_premium_hv_state_of_charge
@@ -134,7 +138,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_akku
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f %%", x); return std::string(buf);'
+          text:
+            format: "%.0f%%"
+            args: [x]
       # Updates the visual Arc matching the battery percentage!
       - lvgl.arc.update:
           id: arc_akku
@@ -147,7 +153,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_pv
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
+          text:
+            format: "%.1f kW"
+            args: [x/1000]
 
   - platform: homeassistant
     id: netzbezug
@@ -157,7 +165,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_netz
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
+          text:
+            format: "%.1f kW"
+            args: [x]
 
   - platform: homeassistant
     id: pv_eingespeist
@@ -167,7 +177,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_eingespeist
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
+          text:
+            format: "%.1f kW"
+            args: [x/1000]
 
   - platform: homeassistant
     id: taglicher_stromverbrauch
@@ -175,7 +187,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_heute
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);'
+          text:
+            format: "%.1f kW"
+            args: [x]
 
   - platform: homeassistant
     id: tag_wp
@@ -183,7 +197,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_tag_wp
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);'
+          text:
+            format: "%.1f kW"
+            args: [x]
 
   - platform: homeassistant
     id: tagliche_pv_produktion
@@ -191,7 +207,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_pv_heute
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);'
+          text:
+            format: "%.1f kW"
+            args: [x]
 
   - platform: homeassistant
     id: taglich_eingespeist
@@ -199,7 +217,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_ein_heute
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kWh", x); return std::string(buf);'
+          text:
+            format: "%.1f kW"
+            args: [x]
 
   - platform: homeassistant
     id: ww_temperatur
@@ -207,7 +227,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_wasser
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f °C", x); return std::string(buf);'
+          text:
+            format: "%.1f °C"
+            args: [x]
 
   - platform: homeassistant
     id: buzz_battery_level
@@ -215,7 +237,9 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: val_buzz
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.0f %%", x); return std::string(buf);'
+          text:
+            format: "%.0f%%"
+            args: [x]
       - lvgl.arc.update:
           id: arc_buzz
           value: !lambda 'return x;'
@@ -343,7 +367,7 @@ lvgl:
         x: 20
         y: 80
         width: 375
-        height: 150
+        height: 90
         bg_color: 0x151F32
         radius: 12
         border_width: 1
@@ -352,32 +376,26 @@ lvgl:
         widgets:
           - label:
               x: 15
-              y: 12
-              text: "ZUG ABFAHRTEN"
-              text_font: montserrat_14
-              text_color: 0x94A3B8
-          - label:
-              x: 15
-              y: 40
-              text: "Geplant"
+              y: 10
+              text: "Zug"
               text_font: montserrat_14_de
               text_color: 0x64748B
           - label:
               x: 230
-              y: 40
+              y: 10
               text: "Abfahrt"
               text_font: montserrat_14_de
               text_color: 0x64748B
           - label:
               id: val_dep1_time
               x: 15
-              y: 60
+              y: 30
               text: "--:--"
               text_color: 0x38BDF8
           - label:
               id: val_dep1_dir
               x: 80
-              y: 60
+              y: 30
               width: 185
               text: "--"
               text_font: montserrat_20_de
@@ -385,20 +403,20 @@ lvgl:
           - label:
               id: val_dep1_delay
               x: 230
-              y: 60
+              y: 30
               text: "--"
               text_font: montserrat_20_de
               text_color: 0x4ADE80
           - label:
               id: val_dep2_time
               x: 15
-              y: 90
+              y: 60
               text: "--:--"
               text_color: 0x38BDF8
           - label:
               id: val_dep2_dir
               x: 80
-              y: 90
+              y: 60
               width: 185
               text: "--"
               text_font: montserrat_20_de
@@ -406,7 +424,7 @@ lvgl:
           - label:
               id: val_dep2_delay
               x: 230
-              y: 90
+              y: 60
               text: "--"
               text_font: montserrat_20_de
               text_color: 0x4ADE80
@@ -416,7 +434,7 @@ lvgl:
         x: 405
         y: 80
         width: 375
-        height: 150
+        height: 90
         bg_color: 0x151F32
         radius: 12
         border_width: 1
@@ -428,8 +446,8 @@ lvgl:
               id: arc_akku
               x: 23
               y: 10
-              width: 130
-              height: 130
+              width: 70
+              height: 70
               value: 0
               min_value: 0
               max_value: 100
@@ -441,15 +459,16 @@ lvgl:
           - label:
               id: val_akku
               x: 23
-              y: 65
-              width: 130
+              y: 30
+              width: 70
               text: "-- %"
+              text_font: montserrat_14
               text_color: 0xF8FAFC
               text_align: center
           - label:
               x: 23
-              y: 100
-              width: 130
+              y: 44
+              width: 70
               text: "Akku"
               text_font: montserrat_14
               text_color: 0x94A3B8
@@ -457,10 +476,10 @@ lvgl:
           # --- Buzz arc (right half) ---
           - arc:
               id: arc_buzz
-              x: 211
+              x: 110
               y: 10
-              width: 130
-              height: 130
+              width: 70
+              height: 70
               value: 0
               min_value: 0
               max_value: 100
@@ -471,25 +490,26 @@ lvgl:
                 arc_width: 12
           - label:
               id: val_buzz
-              x: 211
-              y: 65
-              width: 130
+              x: 110
+              y: 30
+              width: 70
               text: "-- %"
+              text_font: montserrat_14
               text_color: 0xF8FAFC
               text_align: center
           - label:
-              x: 211
-              y: 100
-              width: 130
+              x: 110
+              y: 44
+              width: 70
               text: "Buzz"
               text_font: montserrat_14
               text_color: 0x94A3B8
               text_align: center
 
-    # ── BOTTOM LEFT: LIVE BILANZ ────────────────────────────────────────────────
+    # ── MIDDLE LEFT: LIVE BILANZ ────────────────────────────────────────────────
     - obj:
         x: 20
-        y: 240
+        y: 180
         width: 375
         height: 165
         bg_color: 0x151F32
@@ -579,10 +599,10 @@ lvgl:
               text: "0 °C"
               text_color: 0xF8FAFC
 
-    # ── BOTTOM RIGHT: HEUTE ─────────────────────────────────────────────────────
+    # ── Middle right: HEUTE ─────────────────────────────────────────────────────
     - obj:
         x: 405
-        y: 240
+        y: 180
         width: 375
         height: 165
         bg_color: 0x151F32
@@ -646,4 +666,29 @@ lvgl:
               x: 200
               y: 130
               text: "0 kWh"
+              text_color: 0xF8FAFC
+
+    # ── BOTTOM: ZIMMERTEMPERATUR ─────────────────────────────────────────────────────
+    - obj:
+        x: 20
+        y: 410
+        width: 760
+        height: 60
+        bg_color: 0x151F32
+        radius: 12
+        border_width: 1
+        border_color: 0x1E293B
+        pad_all: 0
+        widgets:
+          - label:
+              x: 15
+              y: 15
+              text: "Esszimmer"
+              text_font: montserrat_14
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_essz
+              x: 15
+              y: 35
+              text: "0"
               text_color: 0xF8FAFC
