@@ -868,6 +868,8 @@ lvgl:
           - label:
               x: 15
               y: 10
+              width: 90
+              text_align: center
               text: "PV"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
@@ -875,97 +877,56 @@ lvgl:
               id: val_pv
               x: 15
               y: 30
+              width: 90
+              text_align: center
               text: "0 kW"
               text_color: 0xF8FAFC
           - line:
               id: line_pv_akku
               points:
-                - 50, 50
-                - 50, 128
-                - 44, 122
-                - 50, 128
-                - 56, 122
+                - 50, 55
+                - 50, 120
               line_color: 0x4ADE80
               line_width: 2
               line_rounded: true
-          - line:
-              id: line_akku_haus
-              points:
-                - 85, 155
-                - 130, 140
-                - 124, 146
-                - 130, 140
-                - 122, 138
-              line_color: 0x4ADE80
-              line_width: 2
-              line_rounded: true
-              hidden: true
           - line:
               id: line_pv_einspeisung
               points:
-                - 88, 30
-                - 128, 30
-                - 122, 25
-                - 128, 30
-                - 122, 35
+                - 88, 20
+                - 128, 20
               line_color: 0x4ADE80
               line_width: 2
               line_rounded: true
-          - line:
-              id: line_pv_haus
-              points:
-                - 88, 50
-                - 130, 130
-                - 124, 126
-                - 130, 130
-                - 130, 123
-              line_color: 0x38BDF8
-              line_width: 2
-              line_rounded: true
-          - line:
-              id: line_netz_haus
-              points:
-                - 250, 50
-                - 195, 130
-                - 202, 127
-                - 195, 130
-                - 196, 122
-              line_color: 0xF87171
-              line_width: 2
-              line_rounded: true
-          - line:
-              id: line_haus_wp
-              points:
-                - 165, 180
-                - 165, 248
-                - 159, 242
-                - 165, 248
-                - 171, 242
-              line_color: 0x38BDF8
-              line_width: 2
-              line_rounded: true
           - label:
-              x: 135
+              x: 120
               y: 10
+              width: 115
+              text_align: center
               text: "Einspeisung"
               text_font: montserrat_14_de
               text_color: 0x4ADE80
           - label:
               id: val_eingespeist
-              x: 135
+              x: 120
               y: 30
+              width: 115
+              text_align: center
               text: "0 kW"
               text_color: 0xF8FAFC
           - label:
-              x: 255
+              x: 235
               y: 10
+              width: 115
+              text_align: center
               text: "Netzbezug"
               text_font: montserrat_14_de
               text_color: 0xF87171
           - label:
               id: val_netz
-              x: 255
+              x: 235
               y: 30
+              width: 115
+              text_align: center
               text: "0 kW"
               text_color: 0xF8FAFC
 
@@ -1002,28 +963,88 @@ lvgl:
               text_color: 0x94A3B8
               text_align: center
 
+          # --- House icon ---
+          - obj:
+              x: 120
+              y: 120
+              width: 115
+              height: 60
+              radius: 0
+              border_width: 0
+              bg_color: 0x1E3A5F
+          - line:
+              points:
+                - 115, 125
+                - 177, 88
+                - 240, 125
+              line_color: 0x1E3A5F
+              line_width: 5
+
           - label:
-              x: 135
+              x: 120
               y: 130
+              width: 115
+              text_align: center
               text: "Haus Gesamt"
               text_font: montserrat_14_de
               text_color: 0x38BDF8
           - label:
               id: val_gesamt
-              x: 135
+              x: 120
               y: 150
+              width: 115
+              text_align: center
               text: "0 kW"
               text_color: 0xF8FAFC
+
+          - line:
+              id: line_akku_haus
+              points:
+                - 85, 155
+                - 115, 155
+              line_color: 0x4ADE80
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_pv_haus
+              points:
+                - 88, 55
+                - 145, 95
+              line_color: 0x38BDF8
+              line_width: 2
+              line_rounded: true
+          - line:
+              id: line_netz_haus
+              points:
+                - 292, 55
+                - 210, 95
+              line_color: 0xF87171
+              line_width: 2
+              line_rounded: true
+          - line:
+              id: line_haus_wp
+              points:
+                - 177, 186
+                - 177, 248
+              line_color: 0x38BDF8
+              line_width: 2
+              line_rounded: true
+
           - label:
-              x: 255
+              x: 235
               y: 130
+              width: 115
+              text_align: center
               text: "Haus ohne WP"
               text_font: montserrat_14_de
               text_color: 0x94A3B8
           - label:
               id: val_hauswp
-              x: 255
+              x: 235
               y: 150
+              width: 115
+              text_align: center
               text: "0 kW"
               text_color: 0xF8FAFC
 
@@ -1063,28 +1084,36 @@ lvgl:
 
 
           - label:
-              x: 135
+              x: 120
               y: 250
+              width: 115
+              text_align: center
               text: "Wärmepumpe"
               text_font: montserrat_14_de
               text_color: 0x38BDF8
           - label:
               id: val_wp
-              x: 135
+              x: 120
               y: 270
+              width: 115
+              text_align: center
               text: "0 kW"
               text_color: 0xF8FAFC
 
           - label:
-              x: 255
+              x: 235
               y: 250
+              width: 115
+              text_align: center
               text: "Warmwasser"
               text_font: montserrat_14_de
               text_color: 0x94A3B8
           - label:
               id: val_wasser
-              x: 255
+              x: 235
               y: 270
+              width: 115
+              text_align: center
               text: "0 °C"
               text_color: 0xF8FAFC
 
