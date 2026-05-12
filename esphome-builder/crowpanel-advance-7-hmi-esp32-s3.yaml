@@ -535,11 +535,11 @@ lvgl:
           - label:
               x: 135
               y: 10
-              text: "Netzbezug"
+              text: "Einspeisung"
               text_font: montserrat_14_de
-              text_color: 0xF87171
+              text_color: 0x4ADE80
           - label:
-              id: val_netz
+              id: val_eingespeist
               x: 135
               y: 30
               text: "0 kW"
@@ -547,22 +547,21 @@ lvgl:
           - label:
               x: 255
               y: 10
-              text: "Einspeisung"
+              text: "Netzbezug"
               text_font: montserrat_14_de
-              text_color: 0x4ADE80
+              text_color: 0xF87171
           - label:
-              id: val_eingespeist
+              id: val_netz
               x: 255
               y: 30
               text: "0 kW"
               text_color: 0xF8FAFC
-          # Row 2
 
           # --- Akku arc ---
           - arc:
               id: arc_akku
               x: 15
-              y: 70
+              y: 130
               width: 70
               height: 70
               value: 0
@@ -576,7 +575,7 @@ lvgl:
           - label:
               id: val_akku
               x: 15
-              y: 90
+              y: 150
               width: 70
               text: "-- %"
               text_font: montserrat_14
@@ -584,7 +583,7 @@ lvgl:
               text_align: center
           - label:
               x: 15
-              y: 104
+              y: 164
               width: 70
               text: "Akku"
               text_font: montserrat_14
@@ -593,26 +592,26 @@ lvgl:
 
           - label:
               x: 135
-              y: 80
+              y: 130
               text: "Haus Gesamt"
               text_font: montserrat_14_de
               text_color: 0x38BDF8
           - label:
               id: val_gesamt
               x: 135
-              y: 100
+              y: 150
               text: "0 kW"
               text_color: 0xF8FAFC
           - label:
               x: 255
-              y: 80
+              y: 130
               text: "Haus ohne WP"
               text_font: montserrat_14_de
               text_color: 0x94A3B8
           - label:
               id: val_hauswp
               x: 255
-              y: 100
+              y: 150
               text: "0 kW"
               text_color: 0xF8FAFC
 
@@ -621,7 +620,7 @@ lvgl:
           - arc:
               id: arc_buzz
               x: 15
-              y: 150
+              y: 240
               width: 70
               height: 70
               value: 0
@@ -635,7 +634,7 @@ lvgl:
           - label:
               id: val_buzz
               x: 15
-              y: 170
+              y: 260
               width: 70
               text: "-- %"
               text_font: montserrat_14
@@ -643,7 +642,7 @@ lvgl:
               text_align: center
           - label:
               x: 15
-              y: 184
+              y: 274
               width: 70
               text: "Buzz"
               text_font: montserrat_14
@@ -653,27 +652,27 @@ lvgl:
 
           - label:
               x: 135
-              y: 160
+              y: 250
               text: "Wärmepumpe"
               text_font: montserrat_14_de
               text_color: 0x38BDF8
           - label:
               id: val_wp
               x: 135
-              y: 180
+              y: 270
               text: "0 kW"
               text_color: 0xF8FAFC
 
           - label:
               x: 255
-              y: 160
+              y: 250
               text: "Warmwasser"
               text_font: montserrat_14_de
               text_color: 0x94A3B8
           - label:
               id: val_wasser
               x: 255
-              y: 180
+              y: 270
               text: "0 °C"
               text_color: 0xF8FAFC
 
