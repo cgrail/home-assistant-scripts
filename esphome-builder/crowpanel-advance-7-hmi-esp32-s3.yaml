@@ -474,6 +474,29 @@ sensor:
 
 text_sensor:
   - platform: homeassistant
+    id: weather_condition
+    entity_id: weather.forecast_home
+    on_value:
+      - lambda: |-
+          const char* display;
+          if (x == "sunny") display = "Sonnig";
+          else if (x == "clear-night") display = "Klar";
+          else if (x == "partlycloudy") display = "Teils bewölkt";
+          else if (x == "cloudy") display = "Bewölkt";
+          else if (x == "rainy") display = "Regen";
+          else if (x == "pouring") display = "Starkregen";
+          else if (x == "snowy") display = "Schnee";
+          else if (x == "snowy-rainy") display = "Schneeregen";
+          else if (x == "lightning") display = "Gewitter";
+          else if (x == "lightning-rainy") display = "Gewitterregen";
+          else if (x == "fog") display = "Nebel";
+          else if (x == "windy") display = "Windig";
+          else if (x == "windy-variant") display = "Windig";
+          else if (x == "hail") display = "Hagel";
+          else if (x == "exceptional") display = "Außergewöhnlich";
+          else display = x.c_str();
+          lv_label_set_text(id(label_weather_condition), display);
+  - platform: homeassistant
     id: zuzenhausen_departures_raw
     entity_id: sensor.zuzenhausen_abfahrten_esphome
     on_value:
@@ -571,6 +594,15 @@ lvgl:
               text: "..."
               text_font: montserrat_20
               text_color: 0x64748B # Muted Slate
+          - label:
+              id: label_weather_condition
+              x: 320
+              y: 32
+              width: 270
+              text: "--"
+              text_font: montserrat_20_de
+              text_color: 0x94A3B8
+              text_align: right
           - label:
               id: label_weather_temp
               x: 600
