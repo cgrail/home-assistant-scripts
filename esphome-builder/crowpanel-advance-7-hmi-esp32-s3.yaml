@@ -915,10 +915,10 @@ lvgl:
               id: line_pv_haus
               points:
                 - 88, 50
-                - 150, 130
-                - 143, 127
-                - 150, 130
-                - 149, 123
+                - 130, 130
+                - 124, 126
+                - 130, 130
+                - 130, 123
               line_color: 0x38BDF8
               line_width: 2
               line_rounded: true
