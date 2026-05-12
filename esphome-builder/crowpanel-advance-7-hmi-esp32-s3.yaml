@@ -885,10 +885,10 @@ lvgl:
               id: line_pv_akku
               points:
                 - 50, 55
-                - 50, 120
-                - 44, 112
-                - 50, 120
-                - 56, 112
+                - 50, 110
+                - 44, 102
+                - 50, 110
+                - 56, 102
               line_color: 0x4ADE80
               line_width: 2
               line_rounded: true
@@ -1006,7 +1006,7 @@ lvgl:
           - line:
               id: line_akku_haus
               points:
-                - 85, 155
+                - 90, 155
                 - 115, 155
                 - 107, 149
                 - 115, 155
