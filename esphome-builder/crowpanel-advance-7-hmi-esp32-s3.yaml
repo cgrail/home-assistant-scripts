@@ -578,6 +578,11 @@ font:
       - "\U000F059E"  # weather-windy-variant
       - "\U000F067E"  # weather-lightning-rainy
       - "\U000F067F"  # weather-snowy-rainy
+  - file: "https://github.com/Templarian/MaterialDesign-Webfont/raw/master/fonts/materialdesignicons-webfont.ttf"
+    id: mdi_14
+    size: 14
+    glyphs:
+      - "\U000F0599"  # weather-sunny
 
 lvgl:
   log_level: INFO
@@ -864,10 +869,14 @@ lvgl:
         pad_all: 0
         widgets:
           - label:
-              x: 15
+              x: 30
               y: 10
-              width: 90
-              text_align: center
+              text: "\U000F0599"
+              text_font: mdi_14
+              text_color: 0xFBBF24
+          - label:
+              x: 46
+              y: 10
               text: "PV"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
