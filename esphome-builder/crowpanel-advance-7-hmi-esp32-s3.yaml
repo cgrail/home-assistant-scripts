@@ -121,6 +121,15 @@ sensor:
           text:
             format: "%.1f kW"
             args: [x]
+      - if:
+          condition:
+            lambda: 'return x > 0;'
+          then:
+            - lvgl.widget.show:
+                id: line_pv_haus
+          else:
+            - lvgl.widget.hide:
+                id: line_pv_haus
 
   - platform: homeassistant
     id: hausverbrauch_ohne_wp
@@ -174,6 +183,15 @@ sensor:
           text:
             format: "%.1f kW"
             args: [x/1000]
+      - if:
+          condition:
+            lambda: 'return x > 0;'
+          then:
+            - lvgl.widget.show:
+                id: line_pv_einspeisung
+          else:
+            - lvgl.widget.hide:
+                id: line_pv_einspeisung
 
   - platform: homeassistant
     id: wp
@@ -532,6 +550,24 @@ lvgl:
               y: 30
               text: "0 kW"
               text_color: 0xF8FAFC
+          - line:
+              id: line_pv_einspeisung
+              points:
+                - 88, 20
+                - 128, 20
+              line_color: 0x4ADE80
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_pv_haus
+              points:
+                - 88, 50
+                - 130, 130
+              line_color: 0x38BDF8
+              line_width: 2
+              line_rounded: true
+              hidden: true
           - label:
               x: 135
               y: 10
