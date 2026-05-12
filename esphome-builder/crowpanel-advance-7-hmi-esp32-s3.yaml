@@ -236,7 +236,7 @@ sensor:
             args: [x]
       - if:
           condition:
-            lambda: 'return x > 50;'
+            lambda: 'return x > 0;'
           then:
             - lvgl.widget.show:
                 id: line_haus_wp
@@ -272,6 +272,46 @@ sensor:
           id: val_pv_heute
           text:
             format: "%.1f kW"
+            args: [x]
+
+  - platform: homeassistant
+    id: monatliche_pv_produktion
+    entity_id: sensor.monatliche_pv_produktion
+    on_value:
+      - lvgl.label.update:
+          id: val_pv_monat
+          text:
+            format: "%.0f kW"
+            args: [x/1000]
+
+  - platform: homeassistant
+    id: monatlich_eingespeist
+    entity_id: sensor.monatlich_eingespeist
+    on_value:
+      - lvgl.label.update:
+          id: val_ein_monat
+          text:
+            format: "%.0f kW"
+            args: [x/1000]
+
+  - platform: homeassistant
+    id: monatlich_bezug_strom_netz
+    entity_id: sensor.monatlich_bezug_strom_netz
+    on_value:
+      - lvgl.label.update:
+          id: val_netz_monat
+          text:
+            format: "%.0f kW"
+            args: [x/1000]
+
+  - platform: homeassistant
+    id: wp_monat
+    entity_id: sensor.wp_monat
+    on_value:
+      - lvgl.label.update:
+          id: val_wp_monat
+          text:
+            format: "%.0f kW"
             args: [x]
 
   - platform: homeassistant
@@ -567,6 +607,152 @@ lvgl:
               text_font: montserrat_20_de
               text_color: 0x4ADE80
 
+    # ── Middle LEFT: HEUTE ─────────────────────────────────────────────────────
+    - obj:
+        x: 20
+        y: 180
+        width: 375
+        height: 220
+        bg_color: 0x151F32
+        radius: 12
+        border_width: 1
+        border_color: 0x1E293B
+        pad_all: 0
+        widgets:
+          - label:
+              x: 15
+              y: 10
+              text: "HEUTE"
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
+
+          - label:
+              x: 15
+              y: 30
+              text: "PV Produktion"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_pv_heute
+              x: 15
+              y: 50
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 15
+              y: 75
+              text: "Eingespeist"
+              text_font: montserrat_14_de
+              text_color: 0x4ADE80
+          - label:
+              id: val_ein_heute
+              x: 15
+              y: 95
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+
+
+          - label:
+              x: 15
+              y: 120
+              text: "Netzbezug"
+              text_font: montserrat_14_de
+              text_color: 0xF87171
+          - label:
+              id: val_heute
+              x: 15
+              y: 140
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 15
+              y: 165
+              text: "Wärmepumpe"
+              text_font: montserrat_14_de
+              text_color: 0x38BDF8
+          - label:
+              id: val_tag_wp
+              x: 15
+              y: 185
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+          # --- Monat ---
+          - label:
+              x: 150
+              y: 10
+              text: "MONAT"
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
+
+          - label:
+              id: val_pv_monat
+              x: 150
+              y: 50
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+          - label:
+              id: val_ein_monat
+              x: 150
+              y: 95
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+          - label:
+              id: val_netz_monat
+              x: 150
+              y: 140
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+          - label:
+              id: val_wp_monat
+              x: 150
+              y: 185
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+
+          # --- GESAMT ---
+          - label:
+              x: 280
+              y: 10
+              text: "GESAMT"
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
+
+          - label:
+              id: val_pv_gesamt
+              x: 280
+              y: 50
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+          - label:
+              id: val_ein_gesamt
+              x: 280
+              y: 95
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+          - label:
+              id: val_netz_gesamt
+              x: 280
+              y: 140
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
+          - label:
+              id: val_wp_gesamt
+              x: 280
+              y: 185
+              text: "0 kWh"
+              text_color: 0xF8FAFC
+
     # ── TOP RIGHT: Live ──────────────────────────────────────
     - obj:
         x: 405
@@ -800,76 +986,6 @@ lvgl:
               x: 255
               y: 270
               text: "0 °C"
-              text_color: 0xF8FAFC
-
-
-    # ── Middle LEFT: HEUTE ─────────────────────────────────────────────────────
-    - obj:
-        x: 20
-        y: 180
-        width: 375
-        height: 165
-        bg_color: 0x151F32
-        radius: 12
-        border_width: 1
-        border_color: 0x1E293B
-        pad_all: 0
-        widgets:
-          - label:
-              x: 15
-              y: 12
-              text: "HEUTE"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
-          # Row 1
-          - label:
-              x: 15
-              y: 45
-              text: "PV Produktion"
-              text_font: montserrat_14_de
-              text_color: 0xFBBF24
-          - label:
-              id: val_pv_heute
-              x: 15
-              y: 65
-              text: "0 kWh"
-              text_color: 0xF8FAFC
-          - label:
-              x: 200
-              y: 45
-              text: "Netzbezug"
-              text_font: montserrat_14_de
-              text_color: 0xF87171
-          - label:
-              id: val_heute
-              x: 200
-              y: 65
-              text: "0 kWh"
-              text_color: 0xF8FAFC
-          # Row 2
-          - label:
-              x: 15
-              y: 110
-              text: "Eingespeist"
-              text_font: montserrat_14_de
-              text_color: 0x4ADE80
-          - label:
-              id: val_ein_heute
-              x: 15
-              y: 130
-              text: "0 kWh"
-              text_color: 0xF8FAFC
-          - label:
-              x: 200
-              y: 110
-              text: "Wärmepumpe"
-              text_font: montserrat_14_de
-              text_color: 0x38BDF8
-          - label:
-              id: val_tag_wp
-              x: 200
-              y: 130
-              text: "0 kWh"
               text_color: 0xF8FAFC
 
     # ── BOTTOM: ZIMMERTEMPERATUR ─────────────────────────────────────────────────────
