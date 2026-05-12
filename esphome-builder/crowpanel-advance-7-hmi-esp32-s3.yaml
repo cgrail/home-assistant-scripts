@@ -1054,7 +1054,7 @@ lvgl:
               y: 130
               width: 115
               text_align: center
-              text: "Haus ohne WP"
+              text: "ohne WP"
               text_font: montserrat_14_de
               text_color: 0x94A3B8
           - label:
