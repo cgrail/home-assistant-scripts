@@ -281,7 +281,7 @@ sensor:
       - lvgl.label.update:
           id: val_pv_monat
           text:
-            format: "%.0f kW"
+            format: "%.0f kWh"
             args: [x/1000]
 
   - platform: homeassistant
@@ -291,7 +291,7 @@ sensor:
       - lvgl.label.update:
           id: val_ein_monat
           text:
-            format: "%.0f kW"
+            format: "%.0f kWh"
             args: [x/1000]
 
   - platform: homeassistant
@@ -301,7 +301,7 @@ sensor:
       - lvgl.label.update:
           id: val_netz_monat
           text:
-            format: "%.0f kW"
+            format: "%.0f kWh"
             args: [x/1000]
 
   - platform: homeassistant
@@ -311,7 +311,7 @@ sensor:
       - lvgl.label.update:
           id: val_wp_monat
           text:
-            format: "%.0f kW"
+            format: "%.0f kWh"
             args: [x]
 
   - platform: homeassistant
