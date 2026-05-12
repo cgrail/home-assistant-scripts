@@ -940,7 +940,7 @@ lvgl:
           - arc:
               id: arc_akku
               x: 15
-              y: 130
+              y: 120
               width: 70
               height: 70
               value: 0
@@ -954,7 +954,7 @@ lvgl:
           - label:
               id: val_akku
               x: 15
-              y: 150
+              y: 140
               width: 70
               text: "-- %"
               text_font: montserrat_14
@@ -962,7 +962,7 @@ lvgl:
               text_align: center
           - label:
               x: 15
-              y: 164
+              y: 154
               width: 70
               text: "Akku"
               text_font: montserrat_14
