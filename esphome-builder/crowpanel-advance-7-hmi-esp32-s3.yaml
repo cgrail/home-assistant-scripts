@@ -315,6 +315,47 @@ sensor:
             args: [x]
 
   - platform: homeassistant
+    id: fronius_total_energy
+    entity_id: sensor.fronius_total_energy
+    on_value:
+      - lvgl.label.update:
+          id: val_pv_gesamt
+          text:
+            format: "%.1f GWh"
+            args: [x/1000000]
+
+  - platform: homeassistant
+    id: smart_meter_ts_5ka_3_real_energy_produced
+    entity_id: sensor.smart_meter_ts_5ka_3_real_energy_produced
+    on_value:
+      - lvgl.label.update:
+          id: val_ein_gesamt
+          text:
+            format: "%.1f GWh"
+            args: [x/1000000]
+
+  - platform: homeassistant
+    id: smart_meter_ts_5ka_3_real_energy_consumed
+    entity_id: sensor.smart_meter_ts_5ka_3_real_energy_consumed
+    on_value:
+      - lvgl.label.update:
+          id: val_netz_gesamt
+          text:
+            format: "%.1f GWh"
+            args: [x/1000000]
+
+  - platform: homeassistant
+    id: warmepumpe_stromverbrauch_gesamt_von_anfang_in_gwh
+    entity_id: sensor.warmepumpe_stromverbrauch_gesamt_von_anfang_in_gwh
+    on_value:
+      - lvgl.label.update:
+          id: val_wp_gesamt
+          text:
+            format: "%.1f GWh"
+            args: [x]
+
+
+  - platform: homeassistant
     id: taglich_eingespeist
     entity_id: sensor.taglich_eingespeist
     on_value:
@@ -719,7 +760,7 @@ lvgl:
 
           # --- GESAMT ---
           - label:
-              x: 280
+              x: 260
               y: 10
               text: "GESAMT"
               text_font: montserrat_14_de
@@ -727,28 +768,28 @@ lvgl:
 
           - label:
               id: val_pv_gesamt
-              x: 280
+              x: 260
               y: 50
               text: "0 kWh"
               text_color: 0xF8FAFC
 
           - label:
               id: val_ein_gesamt
-              x: 280
+              x: 260
               y: 95
               text: "0 kWh"
               text_color: 0xF8FAFC
 
           - label:
               id: val_netz_gesamt
-              x: 280
+              x: 260
               y: 140
               text: "0 kWh"
               text_color: 0xF8FAFC
 
           - label:
               id: val_wp_gesamt
-              x: 280
+              x: 260
               y: 185
               text: "0 kWh"
               text_color: 0xF8FAFC
@@ -993,7 +1034,7 @@ lvgl:
         x: 20
         y: 410
         width: 760
-        height: 60
+        height: 65
         bg_color: 0x151F32
         radius: 12
         border_width: 1
@@ -1002,104 +1043,104 @@ lvgl:
         widgets:
           - label:
               x: 10
-              y: 15
+              y: 10
               text: "Esszimmer"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_temp_essz
               x: 10
-              y: 35
+              y: 30
               text: "0"
               text_color: 0xF8FAFC
 
           - label:
               x: 105
-              y: 15
+              y: 10
               text: "Schlafzimmer"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_temp_schlaf
               x: 105
-              y: 35
+              y: 30
               text: "0"
               text_color: 0xF8FAFC
 
           - label:
               x: 220
-              y: 15
+              y: 10
               text: "David"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_temp_david
               x: 220
-              y: 35
+              y: 30
               text: "0"
               text_color: 0xF8FAFC
 
           - label:
               x: 315
-              y: 15
+              y: 10
               text: "Sami"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_temp_sami
               x: 315
-              y: 35
+              y: 30
               text: "0"
               text_color: 0xF8FAFC
 
           - label:
               x: 410
-              y: 15
+              y: 10
               text: "Jona"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_temp_jona
               x: 410
-              y: 35
+              y: 30
               text: "0"
               text_color: 0xF8FAFC
 
           - label:
               x: 505
-              y: 15
+              y: 10
               text: "Paul"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_temp_paul
               x: 505
-              y: 35
+              y: 30
               text: "0"
               text_color: 0xF8FAFC
 
           - label:
               x: 600
-              y: 15
+              y: 10
               text: "Johanna"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_temp_johanna
               x: 600
-              y: 35
+              y: 30
               text: "0"
               text_color: 0xF8FAFC
 
           - label:
               x: 695
-              y: 15
+              y: 10
               text: "Büro"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_temp_buero
               x: 695
-              y: 35
+              y: 30
               text: "0"
               text_color: 0xF8FAFC
