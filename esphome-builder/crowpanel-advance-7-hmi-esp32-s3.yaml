@@ -142,6 +142,29 @@ sensor:
             args: [x]
 
   - platform: homeassistant
+    id: batterie_ladeleistung
+    entity_id: sensor.batterie_ladeleistung_entladeleistung
+    on_value:
+      - if:
+          condition:
+            lambda: 'return x > 50;'
+          then:
+            - lvgl.widget.show:
+                id: line_pv_akku
+          else:
+            - lvgl.widget.hide:
+                id: line_pv_akku
+      - if:
+          condition:
+            lambda: 'return x < -50;'
+          then:
+            - lvgl.widget.show:
+                id: line_akku_haus
+          else:
+            - lvgl.widget.hide:
+                id: line_akku_haus
+
+  - platform: homeassistant
     id: byd_battery_box_premium_hv_state_of_charge
     entity_id: sensor.byd_battery_box_premium_hv_state_of_charge
     on_value:
@@ -172,10 +195,10 @@ sensor:
           id: val_netz
           text:
             format: "%.1f kW"
-            args: [x]
+            args: [x/1000]
       - if:
           condition:
-            lambda: 'return x > 0;'
+            lambda: 'return x > 50;'
           then:
             - lvgl.widget.show:
                 id: line_netz_haus
@@ -194,7 +217,7 @@ sensor:
             args: [x/1000]
       - if:
           condition:
-            lambda: 'return x > 0;'
+            lambda: 'return x > 50;'
           then:
             - lvgl.widget.show:
                 id: line_pv_einspeisung
@@ -213,7 +236,7 @@ sensor:
             args: [x]
       - if:
           condition:
-            lambda: 'return x > 0;'
+            lambda: 'return x > 50;'
           then:
             - lvgl.widget.show:
                 id: line_haus_wp
@@ -568,6 +591,29 @@ lvgl:
               y: 30
               text: "0 kW"
               text_color: 0xF8FAFC
+          - line:
+              id: line_pv_akku
+              points:
+                - 50, 50
+                - 50, 128
+                - 44, 122
+                - 50, 128
+                - 56, 122
+              line_color: 0x4ADE80
+              line_width: 2
+              line_rounded: true
+          - line:
+              id: line_akku_haus
+              points:
+                - 85, 155
+                - 130, 140
+                - 124, 146
+                - 130, 140
+                - 122, 138
+              line_color: 0x4ADE80
+              line_width: 2
+              line_rounded: true
+              hidden: true
           - line:
               id: line_pv_einspeisung
               points:
