@@ -139,6 +139,35 @@ sensor:
       - lvgl.arc.update:
           id: arc_akku
           value: !lambda 'return x;'
+  - platform: homeassistant
+    id: pv
+    entity_id: sensor.solarnet_power_photovoltaics
+    filters:
+      - delta: 50
+    on_value:
+      - lvgl.label.update:
+          id: val_pv
+          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
+
+  - platform: homeassistant
+    id: netzbezug
+    entity_id: sensor.solarnet_power_grid_import
+    filters:
+      - delta: 50
+    on_value:
+      - lvgl.label.update:
+          id: val_netz
+          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
+
+  - platform: homeassistant
+    id: pv_eingespeist
+    entity_id: sensor.solarnet_power_grid_export
+    filters:
+      - delta: 50
+    on_value:
+      - lvgl.label.update:
+          id: val_eingespeist
+          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.1f kW", x / 1000.0); return std::string(buf);'
 
   - platform: homeassistant
     id: taglicher_stromverbrauch
@@ -314,7 +343,7 @@ lvgl:
         x: 20
         y: 80
         width: 375
-        height: 185
+        height: 150
         bg_color: 0x151F32
         radius: 12
         border_width: 1
@@ -330,13 +359,13 @@ lvgl:
           - label:
               x: 15
               y: 40
-              text: "Abfahrt"
+              text: "Geplant"
               text_font: montserrat_14_de
               text_color: 0x64748B
           - label:
               x: 230
               y: 40
-              text: "Verspätung"
+              text: "Abfahrt"
               text_font: montserrat_14_de
               text_color: 0x64748B
           - label:
@@ -387,7 +416,7 @@ lvgl:
         x: 405
         y: 80
         width: 375
-        height: 185
+        height: 150
         bg_color: 0x151F32
         radius: 12
         border_width: 1
@@ -399,8 +428,8 @@ lvgl:
               id: arc_akku
               x: 23
               y: 10
-              width: 140
-              height: 140
+              width: 130
+              height: 130
               value: 0
               min_value: 0
               max_value: 100
@@ -413,14 +442,14 @@ lvgl:
               id: val_akku
               x: 23
               y: 65
-              width: 140
+              width: 130
               text: "-- %"
               text_color: 0xF8FAFC
               text_align: center
           - label:
               x: 23
-              y: 157
-              width: 140
+              y: 100
+              width: 130
               text: "Akku"
               text_font: montserrat_14
               text_color: 0x94A3B8
@@ -430,8 +459,8 @@ lvgl:
               id: arc_buzz
               x: 211
               y: 10
-              width: 140
-              height: 140
+              width: 130
+              height: 130
               value: 0
               min_value: 0
               max_value: 100
@@ -444,14 +473,14 @@ lvgl:
               id: val_buzz
               x: 211
               y: 65
-              width: 140
+              width: 130
               text: "-- %"
               text_color: 0xF8FAFC
               text_align: center
           - label:
               x: 211
-              y: 157
-              width: 140
+              y: 100
+              width: 130
               text: "Buzz"
               text_font: montserrat_14
               text_color: 0x94A3B8
