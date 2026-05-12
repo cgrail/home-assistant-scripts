@@ -573,6 +573,9 @@ lvgl:
               points:
                 - 88, 30
                 - 128, 30
+                - 122, 25
+                - 128, 30
+                - 122, 35
               line_color: 0x4ADE80
               line_width: 2
               line_rounded: true
@@ -581,6 +584,9 @@ lvgl:
               points:
                 - 88, 50
                 - 150, 130
+                - 143, 127
+                - 150, 130
+                - 149, 123
               line_color: 0x38BDF8
               line_width: 2
               line_rounded: true
@@ -589,6 +595,9 @@ lvgl:
               points:
                 - 250, 50
                 - 195, 130
+                - 202, 127
+                - 195, 130
+                - 196, 122
               line_color: 0xF87171
               line_width: 2
               line_rounded: true
@@ -597,6 +606,9 @@ lvgl:
               points:
                 - 165, 180
                 - 165, 248
+                - 159, 242
+                - 165, 248
+                - 171, 242
               line_color: 0x38BDF8
               line_width: 2
               line_rounded: true
