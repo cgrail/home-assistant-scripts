@@ -19,11 +19,10 @@ allowed-tools: Bash(git add *), Bash(git commit *), Bash(git diff *), Bash(git s
 
 1. Review the diff and modified files shown above.
 2. Review the full conversation history in context to understand what work was done and why.
-3. Write a concise commit message that:
-   - Summarizes the purpose of the changes based on the conversation (the "why", not just the "what")
+3. Write a commit message that:
+   - Has a subject line under 72 characters summarizing the change
    - Follows the style of recent commits shown above
-   - Is under 72 characters for the subject line
-   - Optionally includes a short body if the changes need more context
+   - Always includes a body with the full details: what changed, why it was done, and any relevant context from the conversation — even if the subject line is self-explanatory
 4. Present the proposed commit message to the user and ask for confirmation before proceeding. Wait for explicit approval (e.g. "yes", "ok", "go ahead") or a corrected message. If the user rejects or edits it, update accordingly and ask again.
 5. Once confirmed, stage all modified and untracked files relevant to the work: `git add -A` (but skip .env, secrets, or credential files if any are present)
 6. Commit using this exact format:

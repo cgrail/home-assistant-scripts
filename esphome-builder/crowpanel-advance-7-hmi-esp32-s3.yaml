@@ -148,8 +148,6 @@ sensor:
   - platform: homeassistant
     id: pv
     entity_id: sensor.solarnet_power_photovoltaics
-    filters:
-      - delta: 50
     on_value:
       - lvgl.label.update:
           id: val_pv
@@ -160,8 +158,6 @@ sensor:
   - platform: homeassistant
     id: netzbezug
     entity_id: sensor.solarnet_power_grid_import
-    filters:
-      - delta: 50
     on_value:
       - lvgl.label.update:
           id: val_netz
@@ -172,14 +168,22 @@ sensor:
   - platform: homeassistant
     id: pv_eingespeist
     entity_id: sensor.solarnet_power_grid_export
-    filters:
-      - delta: 50
     on_value:
       - lvgl.label.update:
           id: val_eingespeist
           text:
             format: "%.1f kW"
             args: [x/1000]
+
+  - platform: homeassistant
+    id: wp
+    entity_id: sensor.strom_warmpumpe_in_kwh
+    on_value:
+      - lvgl.label.update:
+          id: val_wp
+          text:
+            format: "%.1f kW"
+            args: [x]
 
   - platform: homeassistant
     id: taglicher_stromverbrauch
@@ -251,7 +255,82 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: label_weather_temp
-          text: !lambda 'char buf[20]; snprintf(buf, sizeof(buf), "%.0f \xc2\xb0" "C", x); return std::string(buf);'
+          text:
+            format: "%.0f °C"
+            args: [x]
+
+  - platform: homeassistant
+    id: esszimmer_temperature
+    entity_id: sensor.esszimmer_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_essz
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: schlafzimmer_temperature
+    entity_id: sensor.schlafzimmer_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_schlaf
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: david_tur_temperature
+    entity_id: sensor.david_tur_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_david
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: heating_thermostat_temperature_2
+    entity_id: sensor.heating_thermostat_temperature_2
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_sami
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: jona_garten_temperature
+    entity_id: sensor.jona_garten_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_jona
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: paul_temperature
+    entity_id: sensor.paul_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_paul
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: johanna_temperature
+    entity_id: sensor.johanna_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_johanna
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: heating_thermostat_temperature
+    entity_id: sensor.heating_thermostat_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_buero
+          text:
+            format: "%.0f °C"
+            args: [x]
 
 text_sensor:
   - platform: homeassistant
@@ -429,23 +508,61 @@ lvgl:
               text_font: montserrat_20_de
               text_color: 0x4ADE80
 
-    # ── TOP RIGHT: TWO ARCS (AKKU + BUZZ) ──────────────────────────────────────
+    # ── TOP RIGHT: Live ──────────────────────────────────────
     - obj:
         x: 405
         y: 80
         width: 375
-        height: 90
+        height: 320
         bg_color: 0x151F32
         radius: 12
         border_width: 1
         border_color: 0x1E293B
         pad_all: 0
         widgets:
-          # --- Akku arc (left half) ---
+          - label:
+              x: 15
+              y: 10
+              text: "PV"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_pv
+              x: 15
+              y: 30
+              text: "0 kW"
+              text_color: 0xF8FAFC
+          - label:
+              x: 135
+              y: 10
+              text: "Netzbezug"
+              text_font: montserrat_14_de
+              text_color: 0xF87171
+          - label:
+              id: val_netz
+              x: 135
+              y: 30
+              text: "0 kW"
+              text_color: 0xF8FAFC
+          - label:
+              x: 255
+              y: 10
+              text: "Einspeisung"
+              text_font: montserrat_14_de
+              text_color: 0x4ADE80
+          - label:
+              id: val_eingespeist
+              x: 255
+              y: 30
+              text: "0 kW"
+              text_color: 0xF8FAFC
+          # Row 2
+
+          # --- Akku arc ---
           - arc:
               id: arc_akku
-              x: 23
-              y: 10
+              x: 15
+              y: 70
               width: 70
               height: 70
               value: 0
@@ -458,26 +575,53 @@ lvgl:
                 arc_width: 12
           - label:
               id: val_akku
-              x: 23
-              y: 30
+              x: 15
+              y: 90
               width: 70
               text: "-- %"
               text_font: montserrat_14
               text_color: 0xF8FAFC
               text_align: center
           - label:
-              x: 23
-              y: 44
+              x: 15
+              y: 104
               width: 70
               text: "Akku"
               text_font: montserrat_14
               text_color: 0x94A3B8
               text_align: center
-          # --- Buzz arc (right half) ---
+
+          - label:
+              x: 135
+              y: 80
+              text: "Haus Gesamt"
+              text_font: montserrat_14_de
+              text_color: 0x38BDF8
+          - label:
+              id: val_gesamt
+              x: 135
+              y: 100
+              text: "0 kW"
+              text_color: 0xF8FAFC
+          - label:
+              x: 255
+              y: 80
+              text: "Haus ohne WP"
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
+          - label:
+              id: val_hauswp
+              x: 255
+              y: 100
+              text: "0 kW"
+              text_color: 0xF8FAFC
+
+
+          # --- Buzz arc  ---
           - arc:
               id: arc_buzz
-              x: 110
-              y: 10
+              x: 15
+              y: 150
               width: 70
               height: 70
               value: 0
@@ -490,23 +634,51 @@ lvgl:
                 arc_width: 12
           - label:
               id: val_buzz
-              x: 110
-              y: 30
+              x: 15
+              y: 170
               width: 70
               text: "-- %"
               text_font: montserrat_14
               text_color: 0xF8FAFC
               text_align: center
           - label:
-              x: 110
-              y: 44
+              x: 15
+              y: 184
               width: 70
               text: "Buzz"
               text_font: montserrat_14
               text_color: 0x94A3B8
               text_align: center
 
-    # ── MIDDLE LEFT: LIVE BILANZ ────────────────────────────────────────────────
+
+          - label:
+              x: 135
+              y: 160
+              text: "Wärmepumpe"
+              text_font: montserrat_14_de
+              text_color: 0x38BDF8
+          - label:
+              id: val_wp
+              x: 135
+              y: 180
+              text: "0 kW"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 255
+              y: 160
+              text: "Warmwasser"
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
+          - label:
+              id: val_wasser
+              x: 255
+              y: 180
+              text: "0 °C"
+              text_color: 0xF8FAFC
+
+
+    # ── Middle LEFT: HEUTE ─────────────────────────────────────────────────────
     - obj:
         x: 20
         y: 180
@@ -521,108 +693,15 @@ lvgl:
           - label:
               x: 15
               y: 12
-              text: "LIVE"
-              text_font: montserrat_14
-              text_color: 0x94A3B8
-          # Row 1
-          - label:
-              x: 15
-              y: 45
-              text: "PV"
-              text_font: montserrat_14
-              text_color: 0xFBBF24
-          - label:
-              id: val_pv
-              x: 15
-              y: 65
-              text: "0 kW"
-              text_color: 0xF8FAFC
-          - label:
-              x: 135
-              y: 45
-              text: "Netzbezug"
-              text_font: montserrat_14
-              text_color: 0xF87171
-          - label:
-              id: val_netz
-              x: 135
-              y: 65
-              text: "0 kW"
-              text_color: 0xF8FAFC
-          - label:
-              x: 255
-              y: 45
-              text: "Einspeisung"
-              text_font: montserrat_14
-              text_color: 0x4ADE80
-          - label:
-              id: val_eingespeist
-              x: 255
-              y: 65
-              text: "0 kW"
-              text_color: 0xF8FAFC
-          # Row 2
-          - label:
-              x: 15
-              y: 110
-              text: "Haus Gesamt"
-              text_font: montserrat_14
-              text_color: 0x38BDF8
-          - label:
-              id: val_gesamt
-              x: 15
-              y: 130
-              text: "0 kW"
-              text_color: 0xF8FAFC
-          - label:
-              x: 135
-              y: 110
-              text: "Haus ohne WP"
-              text_font: montserrat_14
-              text_color: 0x94A3B8
-          - label:
-              id: val_hauswp
-              x: 135
-              y: 130
-              text: "0 kW"
-              text_color: 0xF8FAFC
-          - label:
-              x: 255
-              y: 110
-              text: "Warmwasser"
-              text_font: montserrat_14
-              text_color: 0x94A3B8
-          - label:
-              id: val_wasser
-              x: 255
-              y: 130
-              text: "0 °C"
-              text_color: 0xF8FAFC
-
-    # ── Middle right: HEUTE ─────────────────────────────────────────────────────
-    - obj:
-        x: 405
-        y: 180
-        width: 375
-        height: 165
-        bg_color: 0x151F32
-        radius: 12
-        border_width: 1
-        border_color: 0x1E293B
-        pad_all: 0
-        widgets:
-          - label:
-              x: 15
-              y: 12
               text: "HEUTE"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0x94A3B8
           # Row 1
           - label:
               x: 15
               y: 45
               text: "PV Produktion"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_pv_heute
@@ -634,7 +713,7 @@ lvgl:
               x: 200
               y: 45
               text: "Netzbezug"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0xF87171
           - label:
               id: val_heute
@@ -647,7 +726,7 @@ lvgl:
               x: 15
               y: 110
               text: "Eingespeist"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0x4ADE80
           - label:
               id: val_ein_heute
@@ -684,11 +763,102 @@ lvgl:
               x: 15
               y: 15
               text: "Esszimmer"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_temp_essz
               x: 15
+              y: 35
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 100
+              y: 15
+              text: "Schlafzimmer"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_schlaf
+              x: 100
+              y: 35
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 210
+              y: 15
+              text: "David"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_david
+              x: 210
+              y: 35
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 270
+              y: 15
+              text: "Sami"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_sami
+              x: 270
+              y: 35
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 330
+              y: 15
+              text: "Jona"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_jona
+              x: 330
+              y: 35
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 390
+              y: 15
+              text: "Paul"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_paul
+              x: 390
+              y: 35
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 450
+              y: 15
+              text: "Johanna"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_johanna
+              x: 450
+              y: 35
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 550
+              y: 15
+              text: "Büro"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_buero
+              x: 550
               y: 35
               text: "0"
               text_color: 0xF8FAFC
