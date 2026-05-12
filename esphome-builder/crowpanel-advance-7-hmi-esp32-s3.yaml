@@ -251,7 +251,7 @@ sensor:
       - lvgl.label.update:
           id: val_heute
           text:
-            format: "%.1f kW"
+            format: "%.1f kWh"
             args: [x]
 
   - platform: homeassistant
@@ -261,7 +261,7 @@ sensor:
       - lvgl.label.update:
           id: val_tag_wp
           text:
-            format: "%.1f kW"
+            format: "%.1f kWh"
             args: [x]
 
   - platform: homeassistant
@@ -271,7 +271,7 @@ sensor:
       - lvgl.label.update:
           id: val_pv_heute
           text:
-            format: "%.1f kW"
+            format: "%.1f kWh"
             args: [x]
 
   - platform: homeassistant
@@ -362,7 +362,7 @@ sensor:
       - lvgl.label.update:
           id: val_ein_heute
           text:
-            format: "%.1f kW"
+            format: "%.1f kWh"
             args: [x]
 
   - platform: homeassistant
@@ -751,8 +751,6 @@ lvgl:
               y: 95
               text: "0 kWh"
               text_color: 0xF8FAFC
-
-
 
           - label:
               x: 15
