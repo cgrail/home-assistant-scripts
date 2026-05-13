@@ -117,7 +117,7 @@ lvgl:
               text_color: 0x64748B # Muted Slate
           - label:
               id: label_weather_condition
-              x: 320
+              x: 350
               y: 39
               width: 225
               text: "--"
@@ -126,7 +126,7 @@ lvgl:
               text_align: right
           - label:
               id: label_weather_icon
-              x: 552
+              x: 580
               y: 23
               text: ""
               text_font: mdi_weather_36
