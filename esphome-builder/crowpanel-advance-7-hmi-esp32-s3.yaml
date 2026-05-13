@@ -901,28 +901,32 @@ lvgl:
               x: 150
               y: 50
               text: "0 kWh"
-              text_color: 0xF8FAFC
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
 
           - label:
               id: val_ein_monat
               x: 150
               y: 95
               text: "0 kWh"
-              text_color: 0xF8FAFC
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
 
           - label:
               id: val_netz_monat
               x: 150
               y: 140
               text: "0 kWh"
-              text_color: 0xF8FAFC
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
 
           - label:
               id: val_wp_monat
               x: 150
               y: 185
               text: "0 kWh"
-              text_color: 0xF8FAFC
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
 
 
           # --- GESAMT ---
@@ -938,28 +942,32 @@ lvgl:
               x: 260
               y: 50
               text: "0 kWh"
-              text_color: 0xF8FAFC
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
 
           - label:
               id: val_ein_gesamt
               x: 260
               y: 95
               text: "0 kWh"
-              text_color: 0xF8FAFC
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
 
           - label:
               id: val_netz_gesamt
               x: 260
               y: 140
               text: "0 kWh"
-              text_color: 0xF8FAFC
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
 
           - label:
               id: val_wp_gesamt
               x: 260
               y: 185
               text: "0 kWh"
-              text_color: 0xF8FAFC
+              text_font: montserrat_14_de
+              text_color: 0x94A3B8
 
     # ── TOP RIGHT: Live ──────────────────────────────────────
     - obj:
