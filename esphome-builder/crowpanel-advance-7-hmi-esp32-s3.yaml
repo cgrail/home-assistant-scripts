@@ -461,6 +461,16 @@ sensor:
 
 
   - platform: homeassistant
+    id: tagliche_wp_heizzyklen
+    entity_id: sensor.tagliche_wp_heizzyklen
+    on_value:
+      - lvgl.label.update:
+          id: val_wp_zyklen
+          text:
+            format: "Heute: %.0f Starts"
+            args: [x]
+
+  - platform: homeassistant
     id: taglich_eingespeist
     entity_id: sensor.taglich_eingespeist
     on_value:
@@ -1369,7 +1379,7 @@ lvgl:
 
           - label:
               x: 120
-              y: 250
+              y: 235
               width: 115
               text_align: center
               text: "Wärmepumpe"
@@ -1378,15 +1388,24 @@ lvgl:
           - label:
               id: val_wp
               x: 120
-              y: 270
+              y: 255
               width: 115
               text_align: center
               text: "0 kW"
               text_color: 0xF8FAFC
+          - label:
+              id: val_wp_zyklen
+              x: 120
+              y: 275
+              width: 115
+              text_align: center
+              text: "-x heute"
+              text_font: montserrat_14_de
+              text_color: 0xF8FAFC
 
           - label:
               x: 235
-              y: 250
+              y: 235
               width: 115
               text_align: center
               text: "Warmwasser"
@@ -1395,7 +1414,7 @@ lvgl:
           - label:
               id: val_wasser
               x: 235
-              y: 270
+              y: 255
               width: 115
               text_align: center
               text: "0 °C"
