@@ -104,14 +104,14 @@ lvgl:
           - label:
               id: label_clock
               x: 20
-              y: 10
+              y: 11
               text: "--:--"
               text_font: montserrat_48
               text_color: 0xE2E8F0 # Bright Slate
           - label:
               id: label_date
               x: 160
-              y: 32
+              y: 25
               text: "..."
               text_font: montserrat_20
               text_color: 0x64748B # Muted Slate
@@ -127,14 +127,14 @@ lvgl:
           - label:
               id: label_weather_icon
               x: 552
-              y: 20
+              y: 16
               text: ""
               text_font: mdi_weather_36
               text_color: 0x38BDF8
           - label:
               id: label_weather_temp
               x: 600
-              y: 10
+              y: 11
               width: 150
               text: "-- °C"
               text_font: montserrat_48_temp
