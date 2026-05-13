@@ -4,11 +4,15 @@ sensor:
     id: esszimmer_temperature
     entity_id: sensor.esszimmer_temperature
     on_value:
-      - lvgl.label.update:
-          id: val_temp_essz
-          text:
-            format: "%.0f °C"
-            args: [x]
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_temp_essz
+                text:
+                  format: "%.0f °C"
+                  args: [x]
   - platform: homeassistant
     id: schlafzimmer_temperature
     entity_id: sensor.schlafzimmer_temperature
