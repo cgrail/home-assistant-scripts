@@ -565,8 +565,8 @@ lvgl:
           - line:
               id: line_haus_wp_d0
               points:
-                - 177, 171
-                - 177, 181
+                - 177, 186
+                - 177, 193
               line_color: 0x151F32
               line_width: 10
               line_rounded: true
@@ -574,8 +574,8 @@ lvgl:
           - line:
               id: line_haus_wp_d1
               points:
-                - 177, 185
-                - 177, 195
+                - 177, 199
+                - 177, 206
               line_color: 0x151F32
               line_width: 10
               line_rounded: true
@@ -583,8 +583,8 @@ lvgl:
           - line:
               id: line_haus_wp_d2
               points:
-                - 177, 199
-                - 177, 209
+                - 177, 213
+                - 177, 220
               line_color: 0x151F32
               line_width: 10
               line_rounded: true
