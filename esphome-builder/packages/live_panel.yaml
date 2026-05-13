@@ -193,6 +193,16 @@ sensor:
             args: [x]
 
   - platform: homeassistant
+    id: wp_ruecklauf
+    entity_id: sensor.luxtronik_350107_0371_flow_out_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_wp_ruecklauf
+          text:
+            format: "Rück: %.1f °C"
+            args: [x]
+
+  - platform: homeassistant
     id: ww_temperatur
     entity_id: sensor.hybrox_11_grail_dhw
     on_value:
@@ -759,4 +769,14 @@ lvgl:
               width: 115
               text_align: center
               text: "0 °C"
+              text_color: 0xF8FAFC
+
+          - label:
+              id: val_wp_ruecklauf
+              x: 235
+              y: 275
+              width: 115
+              text_align: center
+              text: "Rücklauf"
+              text_font: montserrat_14_de
               text_color: 0xF8FAFC
