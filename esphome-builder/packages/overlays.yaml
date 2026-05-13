@@ -53,7 +53,6 @@ lvgl:
         bg_opa: 60%
         radius: 0
         border_width: 0
-        hidden: true
         widgets:
           - label:
               x: 0
@@ -98,3 +97,31 @@ lvgl:
               text: "Zug fällt aus"
               text_font: montserrat_big_de
               text_color: 0xFF4500
+    - obj:
+        id: overlay_zug_verspaetet
+        x: 0
+        y: 180
+        width: 800
+        height: 300
+        bg_color: 0x000000
+        bg_opa: 60%
+        radius: 0
+        border_width: 0
+        widgets:
+          - label:
+              x: 0
+              y: 0
+              width: 800
+              text_align: center
+              text: "\U000F0026"
+              text_font: mdi_80
+              text_color: 0xFFD700
+          - label:
+              id: overlay_delay_label
+              x: 0
+              y: 140
+              width: 800
+              text_align: center
+              text: "Zug +5 min"
+              text_font: montserrat_big_de
+              text_color: 0xFFA500

@@ -35,9 +35,11 @@ text_sensor:
             snprintf(buf, sizeof(buf), n > 0 ? "+%d min" : "%d min", n);
             return std::string(buf);
           };
-          std::string d1_time  = json_get(x, "departure_current", 0);
-          std::string d1_delay = fmt_delay(json_get(x, "delay", 0));
-          std::string d1_dir   = json_get(x, "richtung", 0);
+          std::string d1_time      = json_get(x, "departure_current", 0);
+          std::string d1_raw_delay = json_get(x, "delay", 0);
+          int d1_delay_min         = (d1_raw_delay == "--") ? 0 : static_cast<int>(atof(d1_raw_delay.c_str()));
+          std::string d1_delay     = fmt_delay(d1_raw_delay);
+          std::string d1_dir       = json_get(x, "richtung", 0);
           std::string d2_time  = json_get(x, "departure_current", 1);
           std::string d2_delay = fmt_delay(json_get(x, "delay", 1));
           std::string d2_dir   = json_get(x, "richtung", 1);
@@ -47,6 +49,14 @@ text_sensor:
           lv_label_set_text(id(val_dep2_time),  d2_time.c_str());
           lv_label_set_text(id(val_dep2_delay), d2_delay.c_str());
           lv_label_set_text(id(val_dep2_dir),   d2_dir.c_str());
+          if (d1_delay_min > 4) {
+            char dbuf[16];
+            snprintf(dbuf, sizeof(dbuf), "Zug +%d min", d1_delay_min);
+            lv_label_set_text(id(overlay_delay_label), dbuf);
+            lv_obj_clear_flag(id(overlay_zug_verspaetet), LV_OBJ_FLAG_HIDDEN);
+          } else {
+            lv_obj_add_flag(id(overlay_zug_verspaetet), LV_OBJ_FLAG_HIDDEN);
+          }
 
 lvgl:
   widgets:
