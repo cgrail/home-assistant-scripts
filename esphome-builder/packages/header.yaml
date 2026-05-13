@@ -1,0 +1,118 @@
+
+time:
+  - platform: homeassistant
+    id: time_comp
+
+# Only update the clock on an interval now
+interval:
+  - interval: 1s
+    then:
+      - lvgl.label.update:
+          id: label_clock
+          text: !lambda |-
+            auto now = id(time_comp).now();
+            if (!now.is_valid()) return std::string("--:--");
+            char buf[6];
+            snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
+            return std::string(buf);
+      - lvgl.label.update:
+          id: label_date
+          text: !lambda |-
+            auto now = id(time_comp).now();
+            if (!now.is_valid()) return std::string("--.--.----");
+            const char* days[] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
+            char buf[24];
+            snprintf(buf, sizeof(buf), "%s, %02d.%02d.%04d", days[now.day_of_week - 1], now.day_of_month, now.month, now.year);
+            return std::string(buf);
+
+sensor:
+  - platform: homeassistant
+    id: weather_temperature
+    entity_id: weather.forecast_home
+    attribute: temperature
+    on_value:
+      - lvgl.label.update:
+          id: label_weather_temp
+          text:
+            format: "%.0f °C"
+            args: [x]
+
+text_sensor:
+  - platform: homeassistant
+    id: weather_condition
+    entity_id: weather.forecast_home
+    on_value:
+      - lambda: |-
+          const char* display;
+          const char* icon;
+          if (x == "sunny")              { display = "Sonnig";          icon = "\xF3\xB0\x96\x99"; }
+          else if (x == "clear-night")   { display = "Klar";            icon = "\xF3\xB0\x96\x94"; }
+          else if (x == "partlycloudy") { display = "Teils bewölkt";   icon = "\xF3\xB0\x96\x95"; }
+          else if (x == "cloudy")        { display = "Bewölkt";         icon = "\xF3\xB0\x96\x90"; }
+          else if (x == "rainy")         { display = "Regen";           icon = "\xF3\xB0\x96\x97"; }
+          else if (x == "pouring")       { display = "Starkregen";      icon = "\xF3\xB0\x96\x96"; }
+          else if (x == "snowy")         { display = "Schnee";          icon = "\xF3\xB0\x96\x98"; }
+          else if (x == "snowy-rainy")   { display = "Schneeregen";     icon = "\xF3\xB0\x99\xBF"; }
+          else if (x == "lightning")     { display = "Gewitter";        icon = "\xF3\xB0\x96\x93"; }
+          else if (x == "lightning-rainy") { display = "Gewitterregen"; icon = "\xF3\xB0\x99\xBE"; }
+          else if (x == "fog")           { display = "Nebel";           icon = "\xF3\xB0\x96\x91"; }
+          else if (x == "windy")         { display = "Windig";          icon = "\xF3\xB0\x96\x9D"; }
+          else if (x == "windy-variant") { display = "Windig";          icon = "\xF3\xB0\x96\x9E"; }
+          else if (x == "hail")          { display = "Hagel";           icon = "\xF3\xB0\x96\x92"; }
+          else if (x == "exceptional")   { display = "Außergewöhnlich"; icon = "\xF3\xB0\x96\x90"; }
+          else                           { display = x.c_str();         icon = "\xF3\xB0\x96\x90"; }
+          lv_label_set_text(id(label_weather_condition), display);
+          lv_label_set_text(id(label_weather_icon), icon);
+
+lvgl:
+  widgets:
+    # ── HEADER ─────────────────────────────────────────────────────────────────
+    - obj:
+        x: 0
+        y: 0
+        width: 800
+        height: 70
+        bg_color: 0x0B1120
+        radius: 0
+        border_width: 0
+        pad_all: 0
+        widgets:
+          - label:
+              id: label_clock
+              x: 20
+              y: 10
+              text: "--:--"
+              text_font: montserrat_48
+              text_color: 0xE2E8F0 # Bright Slate
+          - label:
+              id: label_date
+              x: 160
+              y: 32
+              text: "..."
+              text_font: montserrat_20
+              text_color: 0x64748B # Muted Slate
+          - label:
+              id: label_weather_condition
+              x: 320
+              y: 25
+              width: 225
+              text: "--"
+              text_font: montserrat_20_de
+              text_color: 0x94A3B8
+              text_align: right
+          - label:
+              id: label_weather_icon
+              x: 552
+              y: 20
+              text: ""
+              text_font: mdi_weather_36
+              text_color: 0x38BDF8
+          - label:
+              id: label_weather_temp
+              x: 600
+              y: 10
+              width: 150
+              text: "-- °C"
+              text_font: montserrat_48_temp
+              text_color: 0x38BDF8 # Light Blue
+              text_align: right

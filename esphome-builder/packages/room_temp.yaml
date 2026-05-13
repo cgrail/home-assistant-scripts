@@ -1,0 +1,193 @@
+
+sensor:
+  - platform: homeassistant
+    id: esszimmer_temperature
+    entity_id: sensor.esszimmer_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_essz
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: schlafzimmer_temperature
+    entity_id: sensor.schlafzimmer_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_schlaf
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: david_tur_temperature
+    entity_id: sensor.david_tur_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_david
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: heating_thermostat_temperature_2
+    entity_id: sensor.heating_thermostat_temperature_2
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_sami
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: jona_garten_temperature
+    entity_id: sensor.jona_garten_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_jona
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: paul_temperature
+    entity_id: sensor.paul_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_paul
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: johanna_temperature
+    entity_id: sensor.johanna_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_johanna
+          text:
+            format: "%.0f °C"
+            args: [x]
+  - platform: homeassistant
+    id: heating_thermostat_temperature
+    entity_id: sensor.heating_thermostat_temperature
+    on_value:
+      - lvgl.label.update:
+          id: val_temp_buero
+          text:
+            format: "%.0f °C"
+            args: [x]
+
+lvgl:
+  widgets:
+
+    # ── BOTTOM: ZIMMERTEMPERATUR ─────────────────────────────────────────────────────
+    - obj:
+        x: 20
+        y: 410
+        width: 760
+        height: 65
+        bg_color: 0x151F32
+        radius: 12
+        border_width: 1
+        border_color: 0x1E293B
+        pad_all: 0
+        widgets:
+          - label:
+              x: 10
+              y: 10
+              text: "Esszimmer"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_essz
+              x: 10
+              y: 30
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 105
+              y: 10
+              text: "Schlafzimmer"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_schlaf
+              x: 105
+              y: 30
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 220
+              y: 10
+              text: "David"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_david
+              x: 220
+              y: 30
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 315
+              y: 10
+              text: "Sami"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_sami
+              x: 315
+              y: 30
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 410
+              y: 10
+              text: "Jona"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_jona
+              x: 410
+              y: 30
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 505
+              y: 10
+              text: "Paul"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_paul
+              x: 505
+              y: 30
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 600
+              y: 10
+              text: "Johanna"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_johanna
+              x: 600
+              y: 30
+              text: "0"
+              text_color: 0xF8FAFC
+
+          - label:
+              x: 695
+              y: 10
+              text: "Büro"
+              text_font: montserrat_14_de
+              text_color: 0xFBBF24
+          - label:
+              id: val_temp_buero
+              x: 695
+              y: 30
+              text: "0"
+              text_color: 0xF8FAFC

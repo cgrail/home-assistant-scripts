@@ -1,0 +1,118 @@
+text_sensor:
+  - platform: homeassistant
+    id: zuzenhausen_departures_raw
+    entity_id: sensor.zuzenhausen_abfahrten_esphome
+    on_value:
+      - lambda: |-
+          auto json_get = [](const std::string& s, const std::string& key, int nth) -> std::string {
+            std::string needle = "\"" + key + "\"";
+            size_t pos = 0;
+            for (int i = 0; i <= nth; i++) {
+              pos = s.find(needle, pos);
+              if (pos == std::string::npos) return "--";
+              if (i < nth) pos += needle.size();
+            }
+            pos = s.find(':', pos + needle.size());
+            if (pos == std::string::npos) return "--";
+            pos++;
+            while (pos < s.size() && s[pos] == ' ') pos++;
+            if (pos >= s.size()) return "--";
+            if (s[pos] == '"') {
+              pos++;
+              size_t end = s.find('"', pos);
+              return (end == std::string::npos) ? "--" : s.substr(pos, end - pos);
+            }
+            size_t end = s.find_first_of(",]}", pos);
+            std::string val = (end == std::string::npos) ? s.substr(pos) : s.substr(pos, end - pos);
+            while (!val.empty() && val.back() == ' ') val.pop_back();
+            return val;
+          };
+          auto fmt_delay = [](const std::string& d) -> std::string {
+            if (d == "--") return "--";
+            int n = static_cast<int>(atof(d.c_str()));
+            if (n == 0) return "p\xc3\xbcnktl.";
+            char buf[12];
+            snprintf(buf, sizeof(buf), n > 0 ? "+%d min" : "%d min", n);
+            return std::string(buf);
+          };
+          std::string d1_time  = json_get(x, "departure_current", 0);
+          std::string d1_delay = fmt_delay(json_get(x, "delay", 0));
+          std::string d1_dir   = json_get(x, "richtung", 0);
+          std::string d2_time  = json_get(x, "departure_current", 1);
+          std::string d2_delay = fmt_delay(json_get(x, "delay", 1));
+          std::string d2_dir   = json_get(x, "richtung", 1);
+          lv_label_set_text(id(val_dep1_time),  d1_time.c_str());
+          lv_label_set_text(id(val_dep1_delay), d1_delay.c_str());
+          lv_label_set_text(id(val_dep1_dir),   d1_dir.c_str());
+          lv_label_set_text(id(val_dep2_time),  d2_time.c_str());
+          lv_label_set_text(id(val_dep2_delay), d2_delay.c_str());
+          lv_label_set_text(id(val_dep2_dir),   d2_dir.c_str());
+
+lvgl:
+  widgets:
+    # ── TOP LEFT: ZUG ABFAHRTEN ─────────────────────────────────────────────────
+    - obj:
+        x: 20
+        y: 80
+        width: 375
+        height: 90
+        bg_color: 0x151F32
+        radius: 12
+        border_width: 1
+        border_color: 0x1E293B
+        pad_all: 0
+        widgets:
+          - label:
+              x: 15
+              y: 10
+              text: "Zug"
+              text_font: montserrat_14_de
+              text_color: 0x64748B
+          - label:
+              x: 230
+              y: 10
+              text: "Abfahrt"
+              text_font: montserrat_14_de
+              text_color: 0x64748B
+          - label:
+              id: val_dep1_time
+              x: 15
+              y: 30
+              text: "--:--"
+              text_color: 0x38BDF8
+          - label:
+              id: val_dep1_dir
+              x: 80
+              y: 30
+              width: 185
+              text: "--"
+              text_font: montserrat_20_de
+              text_color: 0x64748B
+          - label:
+              id: val_dep1_delay
+              x: 230
+              y: 30
+              text: "--"
+              text_font: montserrat_20_de
+              text_color: 0x4ADE80
+          - label:
+              id: val_dep2_time
+              x: 15
+              y: 60
+              text: "--:--"
+              text_color: 0x38BDF8
+          - label:
+              id: val_dep2_dir
+              x: 80
+              y: 60
+              width: 185
+              text: "--"
+              text_font: montserrat_20_de
+              text_color: 0x64748B
+          - label:
+              id: val_dep2_delay
+              x: 230
+              y: 60
+              text: "--"
+              text_font: montserrat_20_de
+              text_color: 0x4ADE80
