@@ -1251,18 +1251,18 @@ lvgl:
               id: line_haus_wp
               points:
                 - 177, 186
-                - 177, 248
-                - 171, 240
-                - 177, 248
-                - 183, 240
+                - 177, 233
+                - 171, 225
+                - 177, 233
+                - 183, 225
               line_color: 0xFF0000
               line_width: 2
               line_rounded: true
           - line:
               id: line_haus_wp_d0
               points:
-                - 177, 186
-                - 177, 196
+                - 177, 171
+                - 177, 181
               line_color: 0x151F32
               line_width: 10
               line_rounded: true
@@ -1270,8 +1270,8 @@ lvgl:
           - line:
               id: line_haus_wp_d1
               points:
-                - 177, 200
-                - 177, 210
+                - 177, 185
+                - 177, 195
               line_color: 0x151F32
               line_width: 10
               line_rounded: true
@@ -1279,8 +1279,8 @@ lvgl:
           - line:
               id: line_haus_wp_d2
               points:
-                - 177, 214
-                - 177, 224
+                - 177, 199
+                - 177, 209
               line_color: 0x151F32
               line_width: 10
               line_rounded: true
