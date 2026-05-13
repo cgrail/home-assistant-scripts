@@ -31,8 +31,6 @@ allowed-tools: Bash(git add *), Bash(git commit *), Bash(git diff *), Bash(git s
    <subject line>
 
    <optional body>
-
-   Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
    EOF
    )"
    ```
