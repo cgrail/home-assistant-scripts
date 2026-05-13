@@ -3,7 +3,7 @@ esphome:
   friendly_name: CrowPanel Advance 7 HMI| ESP32-S3
 
 globals:
-  - id: pv_haus_anim_step
+  - id: live_anim_step
     type: int
     restore_value: false
     initial_value: '0'
@@ -117,21 +117,43 @@ interval:
             snprintf(buf, sizeof(buf), "%s, %02d.%02d.%04d", days[now.day_of_week - 1], now.day_of_month, now.month, now.year);
             return std::string(buf);
       - lambda: |-
-          bool vis = !lv_obj_has_flag(id(line_pv_haus)->obj, LV_OBJ_FLAG_HIDDEN);
-          int step = id(pv_haus_anim_step);
-          lv_obj_t* dashes[4] = {
+          bool vis_haus = !lv_obj_has_flag(id(line_pv_haus)->obj, LV_OBJ_FLAG_HIDDEN);
+          bool vis_akku = !lv_obj_has_flag(id(line_pv_akku)->obj, LV_OBJ_FLAG_HIDDEN);
+          bool vis_wp   = !lv_obj_has_flag(id(line_haus_wp)->obj, LV_OBJ_FLAG_HIDDEN);
+          int step = id(live_anim_step);
+          lv_obj_t* dashes_haus[4] = {
             id(line_pv_haus_d0)->obj,
             id(line_pv_haus_d1)->obj,
             id(line_pv_haus_d2)->obj,
             id(line_pv_haus_d3)->obj,
           };
+          lv_obj_t* dashes_akku[4] = {
+            id(line_pv_akku_d0)->obj,
+            id(line_pv_akku_d1)->obj,
+            id(line_pv_akku_d2)->obj,
+            id(line_pv_akku_d3)->obj,
+          };
+          lv_obj_t* dashes_wp[4] = {
+            id(line_haus_wp_d0)->obj,
+            id(line_haus_wp_d1)->obj,
+            id(line_haus_wp_d2)->obj,
+            id(line_haus_wp_d3)->obj,
+          };
           for (int i = 0; i < 4; i++) {
-            if (vis && i == step)
-              lv_obj_clear_flag(dashes[i], LV_OBJ_FLAG_HIDDEN);
+            if (vis_haus && i == step)
+              lv_obj_clear_flag(dashes_haus[i], LV_OBJ_FLAG_HIDDEN);
             else
-              lv_obj_add_flag(dashes[i], LV_OBJ_FLAG_HIDDEN);
+              lv_obj_add_flag(dashes_haus[i], LV_OBJ_FLAG_HIDDEN);
+            if (vis_akku && i == step)
+              lv_obj_clear_flag(dashes_akku[i], LV_OBJ_FLAG_HIDDEN);
+            else
+              lv_obj_add_flag(dashes_akku[i], LV_OBJ_FLAG_HIDDEN);
+            if (vis_wp && i == step)
+              lv_obj_clear_flag(dashes_wp[i], LV_OBJ_FLAG_HIDDEN);
+            else
+              lv_obj_add_flag(dashes_wp[i], LV_OBJ_FLAG_HIDDEN);
           }
-          if (vis) id(pv_haus_anim_step) = (step + 1) % 4;
+          if (vis_haus || vis_akku || vis_wp) id(live_anim_step) = (step + 1) % 4;
 
 sensor:
   - platform: homeassistant
@@ -947,6 +969,42 @@ lvgl:
               line_width: 1
               line_rounded: true
           - line:
+              id: line_pv_akku_d0
+              points:
+                - 50, 55
+                - 50, 65
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_pv_akku_d1
+              points:
+                - 50, 69
+                - 50, 79
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_pv_akku_d2
+              points:
+                - 50, 83
+                - 50, 93
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_pv_akku_d3
+              points:
+                - 50, 97
+                - 50, 107
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
+          - line:
               id: line_pv_einspeisung
               points:
                 - 88, 20
@@ -1138,6 +1196,42 @@ lvgl:
               line_color: 0xFF0000
               line_width: 2
               line_rounded: true
+          - line:
+              id: line_haus_wp_d0
+              points:
+                - 177, 186
+                - 177, 196
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_haus_wp_d1
+              points:
+                - 177, 200
+                - 177, 210
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_haus_wp_d2
+              points:
+                - 177, 214
+                - 177, 224
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_haus_wp_d3
+              points:
+                - 177, 228
+                - 177, 238
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
 
           - label:
               x: 235
