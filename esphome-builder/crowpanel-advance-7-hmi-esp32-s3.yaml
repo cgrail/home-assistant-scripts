@@ -172,6 +172,11 @@ sensor:
     id: batterie_ladeleistung
     entity_id: sensor.batterie_ladeleistung_entladeleistung
     on_value:
+      - lambda: |-
+          int w = (int)(x / 1000.0f + 0.5f);
+          if (w < 1) w = 1;
+          if (w > 10) w = 10;
+          lv_obj_set_style_line_width(id(line_pv_akku)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
       - if:
           condition:
             lambda: 'return x > 50;'
@@ -924,7 +929,7 @@ lvgl:
                 - 50, 110
                 - 56, 102
               line_color: 0x4ADE80
-              line_width: 2
+              line_width: 1
               line_rounded: true
           - line:
               id: line_pv_einspeisung
