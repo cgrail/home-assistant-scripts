@@ -121,6 +121,7 @@ interval:
           bool vis_akku = !lv_obj_has_flag(id(line_pv_akku)->obj, LV_OBJ_FLAG_HIDDEN);
           bool vis_wp   = !lv_obj_has_flag(id(line_haus_wp)->obj, LV_OBJ_FLAG_HIDDEN);
           bool vis_netz = !lv_obj_has_flag(id(line_netz_haus)->obj, LV_OBJ_FLAG_HIDDEN);
+          bool vis_buzz = !lv_obj_has_flag(id(line_haus_buzz)->obj, LV_OBJ_FLAG_HIDDEN);
           int step = id(live_anim_step);
           lv_obj_t* dashes_haus[3] = {
             id(line_pv_haus_d0)->obj,
@@ -142,6 +143,11 @@ interval:
             id(line_netz_haus_d1)->obj,
             id(line_netz_haus_d2)->obj,
           };
+          lv_obj_t* dashes_buzz[3] = {
+            id(line_haus_buzz_d0)->obj,
+            id(line_haus_buzz_d1)->obj,
+            id(line_haus_buzz_d2)->obj,
+          };
           for (int i = 0; i < 3; i++) {
             if (vis_haus && i == step)
               lv_obj_clear_flag(dashes_haus[i], LV_OBJ_FLAG_HIDDEN);
@@ -159,8 +165,12 @@ interval:
               lv_obj_clear_flag(dashes_netz[i], LV_OBJ_FLAG_HIDDEN);
             else
               lv_obj_add_flag(dashes_netz[i], LV_OBJ_FLAG_HIDDEN);
+            if (vis_buzz && i == step)
+              lv_obj_clear_flag(dashes_buzz[i], LV_OBJ_FLAG_HIDDEN);
+            else
+              lv_obj_add_flag(dashes_buzz[i], LV_OBJ_FLAG_HIDDEN);
           }
-          if (vis_haus || vis_akku || vis_wp || vis_netz) id(live_anim_step) = (step + 1) % 3;
+          if (vis_haus || vis_akku || vis_wp || vis_netz || vis_buzz) id(live_anim_step) = (step + 1) % 3;
 
 sensor:
   - platform: homeassistant
@@ -319,6 +329,25 @@ sensor:
           else:
             - lvgl.widget.hide:
                 id: line_haus_wp
+
+  - platform: homeassistant
+    id: wattpilot_charging_power
+    entity_id: sensor.wattpilot_charging_power
+    on_value:
+      - lambda: |-
+          int w = (int)(x / 1000.0f + 0.5f);
+          if (w < 1) w = 1;
+          if (w > 10) w = 10;
+          lv_obj_set_style_line_width(id(line_haus_buzz)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
+      - if:
+          condition:
+            lambda: 'return x > 50;'
+          then:
+            - lvgl.widget.show:
+                id: line_haus_buzz
+          else:
+            - lvgl.widget.hide:
+                id: line_haus_buzz
 
   - platform: homeassistant
     id: taglicher_stromverbrauch
@@ -1234,6 +1263,45 @@ lvgl:
               points:
                 - 177, 214
                 - 177, 224
+              line_color: 0x151F32
+              line_width: 10
+              line_rounded: true
+              hidden: true
+
+          - line:
+              id: line_haus_buzz
+              points:
+                - 120, 186
+                - 90, 235
+                - 99, 231
+                - 90, 235
+                - 89, 225
+              line_color: 0x38BDF8
+              line_width: 2
+              line_rounded: true
+          - line:
+              id: line_haus_buzz_d0
+              points:
+                - 120, 186
+                - 115, 195
+              line_color: 0x151F32
+              line_width: 10
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_haus_buzz_d1
+              points:
+                - 113, 198
+                - 108, 207
+              line_color: 0x151F32
+              line_width: 10
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_haus_buzz_d2
+              points:
+                - 106, 210
+                - 101, 219
               line_color: 0x151F32
               line_width: 10
               line_rounded: true
