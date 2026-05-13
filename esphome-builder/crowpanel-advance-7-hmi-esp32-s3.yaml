@@ -120,6 +120,7 @@ interval:
           bool vis_haus = !lv_obj_has_flag(id(line_pv_haus)->obj, LV_OBJ_FLAG_HIDDEN);
           bool vis_akku = !lv_obj_has_flag(id(line_pv_akku)->obj, LV_OBJ_FLAG_HIDDEN);
           bool vis_wp   = !lv_obj_has_flag(id(line_haus_wp)->obj, LV_OBJ_FLAG_HIDDEN);
+          bool vis_netz = !lv_obj_has_flag(id(line_netz_haus)->obj, LV_OBJ_FLAG_HIDDEN);
           int step = id(live_anim_step);
           lv_obj_t* dashes_haus[3] = {
             id(line_pv_haus_d0)->obj,
@@ -136,6 +137,11 @@ interval:
             id(line_haus_wp_d1)->obj,
             id(line_haus_wp_d2)->obj,
           };
+          lv_obj_t* dashes_netz[3] = {
+            id(line_netz_haus_d0)->obj,
+            id(line_netz_haus_d1)->obj,
+            id(line_netz_haus_d2)->obj,
+          };
           for (int i = 0; i < 3; i++) {
             if (vis_haus && i == step)
               lv_obj_clear_flag(dashes_haus[i], LV_OBJ_FLAG_HIDDEN);
@@ -149,8 +155,12 @@ interval:
               lv_obj_clear_flag(dashes_wp[i], LV_OBJ_FLAG_HIDDEN);
             else
               lv_obj_add_flag(dashes_wp[i], LV_OBJ_FLAG_HIDDEN);
+            if (vis_netz && i == step)
+              lv_obj_clear_flag(dashes_netz[i], LV_OBJ_FLAG_HIDDEN);
+            else
+              lv_obj_add_flag(dashes_netz[i], LV_OBJ_FLAG_HIDDEN);
           }
-          if (vis_haus || vis_akku || vis_wp) id(live_anim_step) = (step + 1) % 3;
+          if (vis_haus || vis_akku || vis_wp || vis_netz) id(live_anim_step) = (step + 1) % 3;
 
 sensor:
   - platform: homeassistant
@@ -1114,7 +1124,6 @@ lvgl:
               line_color: 0x4ADE80
               line_width: 2
               line_rounded: true
-              hidden: true
           - line:
               id: line_pv_haus
               points:
@@ -1164,6 +1173,33 @@ lvgl:
               line_color: 0xF87171
               line_width: 2
               line_rounded: true
+          - line:
+              id: line_netz_haus_d0
+              points:
+                - 292, 55
+                - 281, 60
+              line_color: 0x151F32
+              line_width: 10
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_netz_haus_d1
+              points:
+                - 276, 62
+                - 265, 67
+              line_color: 0x151F32
+              line_width: 10
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_netz_haus_d2
+              points:
+                - 260, 69
+                - 249, 74
+              line_color: 0x151F32
+              line_width: 10
+              line_rounded: true
+              hidden: true
           - line:
               id: line_haus_wp
               points:
