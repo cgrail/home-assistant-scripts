@@ -228,6 +228,11 @@ sensor:
           text:
             format: "%.1f kW"
             args: [x/1000]
+      - lambda: |-
+          int w = (int)(x / 1000.0f + 0.5f);
+          if (w < 1) w = 1;
+          if (w > 10) w = 10;
+          lv_obj_set_style_line_width(id(line_netz_haus)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
       - if:
           condition:
             lambda: 'return x > 50;'
@@ -247,6 +252,11 @@ sensor:
           text:
             format: "%.1f kW"
             args: [x/1000]
+      - lambda: |-
+          int w = (int)(x / 1000.0f + 0.5f);
+          if (w < 1) w = 1;
+          if (w > 10) w = 10;
+          lv_obj_set_style_line_width(id(line_pv_einspeisung)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
       - if:
           condition:
             lambda: 'return x > 50;'
@@ -266,6 +276,11 @@ sensor:
           text:
             format: "%.1f kW"
             args: [x]
+      - lambda: |-
+          int w = (int)(x * 3.0f);
+          if (w < 1) w = 1;
+          if (w > 10) w = 10;
+          lv_obj_set_style_line_width(id(line_haus_wp)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
       - if:
           condition:
             lambda: 'return x > 0;'
@@ -928,7 +943,7 @@ lvgl:
                 - 44, 102
                 - 50, 110
                 - 56, 102
-              line_color: 0x4ADE80
+              line_color: 0xCCFF00
               line_width: 1
               line_rounded: true
           - line:
@@ -939,8 +954,8 @@ lvgl:
                 - 120, 14
                 - 128, 20
                 - 120, 26
-              line_color: 0x4ADE80
-              line_width: 2
+              line_color: 0xCCFF00
+              line_width: 10
               line_rounded: true
           - label:
               x: 120
@@ -1120,7 +1135,7 @@ lvgl:
                 - 171, 240
                 - 177, 248
                 - 183, 240
-              line_color: 0x38BDF8
+              line_color: 0xFF0000
               line_width: 2
               line_rounded: true
 
@@ -1183,7 +1198,7 @@ lvgl:
               text_align: center
               text: "Wärmepumpe"
               text_font: montserrat_14_de
-              text_color: 0x38BDF8
+              text_color: 0xFF0000
           - label:
               id: val_wp
               x: 120
@@ -1200,7 +1215,7 @@ lvgl:
               text_align: center
               text: "Warmwasser"
               text_font: montserrat_14_de
-              text_color: 0x94A3B8
+              text_color: 0xFF0000
           - label:
               id: val_wasser
               x: 235
