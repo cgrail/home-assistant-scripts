@@ -107,14 +107,14 @@ lvgl:
               y: 11
               text: "--:--"
               text_font: montserrat_48
-              text_color: 0xE2E8F0 # Bright Slate
+              text_color: 0xE2E8F0
           - label:
               id: label_date
               x: 160
               y: 39
               text: "..."
-              text_font: montserrat_20
-              text_color: 0x64748B # Muted Slate
+              text_font: montserrat_20_de
+              text_color: 0x64748B
           - label:
               id: label_weather_condition
               x: 350
@@ -122,7 +122,7 @@ lvgl:
               width: 225
               text: "--"
               text_font: montserrat_20_de
-              text_color: 0x94A3B8
+              text_color: 0x64748B
               text_align: right
           - label:
               id: label_weather_icon
@@ -130,7 +130,7 @@ lvgl:
               y: 23
               text: ""
               text_font: mdi_weather_36
-              text_color: 0x38BDF8
+              text_color: 0x64748B
           - label:
               id: label_weather_temp
               x: 600
@@ -138,5 +138,5 @@ lvgl:
               width: 150
               text: "-- °C"
               text_font: montserrat_48_temp
-              text_color: 0x38BDF8 # Light Blue
+              text_color: 0xE2E8F0
               text_align: right
