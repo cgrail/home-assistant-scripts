@@ -4,10 +4,27 @@ font:
     size: 140
     glyphs:
       - "\U000F0026"  # alert
+      - "\U000F04E4"  # train-off
   - file: "gfonts://Montserrat"
     id: montserrat_big_de
     size: 100
     glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyzäöüÄÖÜß"
+
+binary_sensor:
+  - platform: homeassistant
+    id: zug_fallt_aus
+    entity_id: binary_sensor.zug_fallt_aus
+    trigger_on_initial_state: true
+    on_state:
+      - if:
+          condition:
+            lambda: 'return x;'
+          then:
+            - lvgl.widget.show:
+                id: overlay_zug_fallt_aus
+          else:
+            - lvgl.widget.hide:
+                id: overlay_zug_fallt_aus
 
 text_sensor:
   - platform: homeassistant
@@ -36,7 +53,7 @@ lvgl:
         bg_opa: 60%
         radius: 0
         border_width: 0
-        hidden: false
+        hidden: true
         widgets:
           - label:
               x: 0
@@ -52,5 +69,32 @@ lvgl:
               width: 800
               text_align: center
               text: "Garage offen"
+              text_font: montserrat_big_de
+              text_color: 0xFF4500
+    - obj:
+        id: overlay_zug_fallt_aus
+        x: 0
+        y: 180
+        width: 800
+        height: 300
+        bg_color: 0x000000
+        bg_opa: 60%
+        radius: 0
+        border_width: 0
+        widgets:
+          - label:
+              x: 0
+              y: 0
+              width: 800
+              text_align: center
+              text: "\U000F0026"
+              text_font: mdi_80
+              text_color: 0xFFD700
+          - label:
+              x: 0
+              y: 140
+              width: 800
+              text_align: center
+              text: "Zug fällt aus"
               text_font: montserrat_big_de
               text_color: 0xFF4500
