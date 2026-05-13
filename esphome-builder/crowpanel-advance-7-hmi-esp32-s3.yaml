@@ -2,6 +2,12 @@ esphome:
   name: crowpanel-advance-7-hmi
   friendly_name: CrowPanel Advance 7 HMI| ESP32-S3
 
+globals:
+  - id: pv_haus_anim_step
+    type: int
+    restore_value: false
+    initial_value: '0'
+
 esp32:
   board: esp32-s3-devkitc-1
   framework:
@@ -110,6 +116,22 @@ interval:
             char buf[24];
             snprintf(buf, sizeof(buf), "%s, %02d.%02d.%04d", days[now.day_of_week - 1], now.day_of_month, now.month, now.year);
             return std::string(buf);
+      - lambda: |-
+          bool vis = !lv_obj_has_flag(id(line_pv_haus)->obj, LV_OBJ_FLAG_HIDDEN);
+          int step = id(pv_haus_anim_step);
+          lv_obj_t* dashes[4] = {
+            id(line_pv_haus_d0)->obj,
+            id(line_pv_haus_d1)->obj,
+            id(line_pv_haus_d2)->obj,
+            id(line_pv_haus_d3)->obj,
+          };
+          for (int i = 0; i < 4; i++) {
+            if (vis && i == step)
+              lv_obj_clear_flag(dashes[i], LV_OBJ_FLAG_HIDDEN);
+            else
+              lv_obj_add_flag(dashes[i], LV_OBJ_FLAG_HIDDEN);
+          }
+          if (vis) id(pv_haus_anim_step) = (step + 1) % 4;
 
 sensor:
   - platform: homeassistant
@@ -1038,6 +1060,42 @@ lvgl:
               line_color: 0xCCFF00
               line_width: 1
               line_rounded: true
+          - line:
+              id: line_pv_haus_d0
+              points:
+                - 88, 55
+                - 98, 62
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_pv_haus_d1
+              points:
+                - 102, 65
+                - 112, 72
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_pv_haus_d2
+              points:
+                - 116, 75
+                - 126, 82
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_pv_haus_d3
+              points:
+                - 130, 84
+                - 140, 91
+              line_color: 0xFFFFCC
+              line_width: 3
+              line_rounded: true
+              hidden: true
           - line:
               id: line_netz_haus
               points:
