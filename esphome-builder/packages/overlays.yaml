@@ -1,0 +1,56 @@
+font:
+  - file: "https://github.com/Templarian/MaterialDesign-Webfont/raw/master/fonts/materialdesignicons-webfont.ttf"
+    id: mdi_80
+    size: 140
+    glyphs:
+      - "\U000F0026"  # alert
+  - file: "gfonts://Montserrat"
+    id: montserrat_big_de
+    size: 100
+    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyzäöüÄÖÜß"
+
+text_sensor:
+  - platform: homeassistant
+    id: garage_door_status
+    entity_id: sensor.garage_door_garage_door_status
+    on_value:
+      - if:
+          condition:
+            lambda: 'return x == "open";'
+          then:
+            - lvgl.widget.show:
+                id: overlay_garage
+          else:
+            - lvgl.widget.hide:
+                id: overlay_garage
+
+lvgl:
+  widgets:
+    - obj:
+        id: overlay_garage
+        x: 0
+        y: 0
+        width: 800
+        height: 480
+        bg_color: 0x000000
+        bg_opa: 60%
+        radius: 0
+        border_width: 0
+        hidden: false
+        widgets:
+          - label:
+              x: 0
+              y: 60
+              width: 800
+              text_align: center
+              text: "\U000F0026"
+              text_font: mdi_80
+              text_color: 0xFFD700
+          - label:
+              x: 0
+              y: 180
+              width: 800
+              text_align: center
+              text: "Garage offen"
+              text_font: montserrat_big_de
+              text_color: 0xFF4500
