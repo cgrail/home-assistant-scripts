@@ -21,6 +21,7 @@ allowed-tools: Bash(git add *), Bash(git commit *), Bash(git diff *), Bash(git s
 2. Review the full conversation history in context to understand what work was done and why.
 3. Write a commit message that:
    - Has a subject line under 72 characters summarizing the change
+   - If exactly one file was modified, include the file name (e.g. `SKILL.md`, `trains.yaml`) at the start of the subject line, followed by a colon and the summary
    - Follows the style of recent commits shown above
    - Always includes a body with the full details: what changed, why it was done, and any relevant context from the conversation — even if the subject line is self-explanatory
 4. Present the proposed commit message to the user and ask for confirmation before proceeding. Wait for explicit approval (e.g. "yes", "ok", "go ahead") or a corrected message. If the user rejects or edits it, update accordingly and ask again.
