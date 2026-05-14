@@ -30,7 +30,7 @@ text_sensor:
           auto fmt_delay = [](const std::string& d) -> std::string {
             if (d == "--") return "--";
             int n = static_cast<int>(atof(d.c_str()));
-            if (n == 0) return "p\xc3\xbcnktl.";
+            if (n == 0) return "p\xc3\xbcnktlich";
             char buf[12];
             snprintf(buf, sizeof(buf), n > 0 ? "+%d min" : "%d min", n);
             return std::string(buf);
