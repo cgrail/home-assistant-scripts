@@ -49,7 +49,7 @@ text_sensor:
           lv_label_set_text(id(val_dep2_time),  d2_time.c_str());
           lv_label_set_text(id(val_dep2_delay), d2_delay.c_str());
           lv_label_set_text(id(val_dep2_dir),   d2_dir.c_str());
-          if (d1_delay_min > 4) {
+          if (d1_delay_min > 9) {
             char dbuf[16];
             snprintf(dbuf, sizeof(dbuf), "Zug +%d min", d1_delay_min);
             lv_label_set_text(id(overlay_delay_label), dbuf);
