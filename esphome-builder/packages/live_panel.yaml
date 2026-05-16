@@ -3,6 +3,10 @@ globals:
     type: int
     restore_value: false
     initial_value: '0'
+  - id: line_pv_haus_width
+    type: int
+    restore_value: false
+    initial_value: '0'
 
 sensor:
   - platform: homeassistant
@@ -14,11 +18,16 @@ sensor:
           text:
             format: "%.1f kW"
             args: [x]
-      - lambda: |-
-          int w = (int)(x + 0.5f);
-          if (w < 1) w = 1;
-          if (w > 10) w = 10;
-          lv_obj_set_style_line_width(id(line_pv_haus)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
+      - lambda: id(line_pv_haus_width) = std::max(1, std::min(10, (int)(x * 2)));
+      - lvgl.line.update:
+          id: line_pv_haus_d0
+          line_width: !lambda 'return id(line_pv_haus_width);'
+      - lvgl.line.update:
+          id: line_pv_haus_d1
+          line_width: !lambda 'return id(line_pv_haus_width);'
+      - lvgl.line.update:
+          id: line_pv_haus_d2
+          line_width: !lambda 'return id(line_pv_haus_width);'
       - if:
           condition:
             lambda: 'return x > 0;'
