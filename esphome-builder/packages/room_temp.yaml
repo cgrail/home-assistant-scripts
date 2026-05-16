@@ -17,65 +17,93 @@ sensor:
     id: schlafzimmer_temperature
     entity_id: sensor.schlafzimmer_temperature
     on_value:
-      - lvgl.label.update:
-          id: val_temp_schlaf
-          text:
-            format: "%.0f °C"
-            args: [x]
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_temp_schlaf
+                text:
+                  format: "%.0f °C"
+                  args: [x]
   - platform: homeassistant
     id: david_tur_temperature
     entity_id: sensor.david_tur_temperature
     on_value:
-      - lvgl.label.update:
-          id: val_temp_david
-          text:
-            format: "%.0f °C"
-            args: [x]
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_temp_david
+                text:
+                  format: "%.0f °C"
+                  args: [x]
   - platform: homeassistant
     id: heating_thermostat_temperature_2
     entity_id: sensor.heating_thermostat_temperature_2
     on_value:
-      - lvgl.label.update:
-          id: val_temp_sami
-          text:
-            format: "%.0f °C"
-            args: [x]
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_temp_sami
+                text:
+                  format: "%.0f °C"
+                  args: [x]
   - platform: homeassistant
     id: jona_garten_temperature
     entity_id: sensor.jona_garten_temperature
     on_value:
-      - lvgl.label.update:
-          id: val_temp_jona
-          text:
-            format: "%.0f °C"
-            args: [x]
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_temp_jona
+                text:
+                  format: "%.0f °C"
+                  args: [x]
   - platform: homeassistant
     id: paul_temperature
     entity_id: sensor.paul_temperature
     on_value:
-      - lvgl.label.update:
-          id: val_temp_paul
-          text:
-            format: "%.0f °C"
-            args: [x]
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_temp_paul
+                text:
+                  format: "%.0f °C"
+                  args: [x]
   - platform: homeassistant
     id: johanna_temperature
     entity_id: sensor.johanna_temperature
     on_value:
-      - lvgl.label.update:
-          id: val_temp_johanna
-          text:
-            format: "%.0f °C"
-            args: [x]
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_temp_johanna
+                text:
+                  format: "%.0f °C"
+                  args: [x]
   - platform: homeassistant
     id: heating_thermostat_temperature
     entity_id: sensor.heating_thermostat_temperature
     on_value:
-      - lvgl.label.update:
-          id: val_temp_buero
-          text:
-            format: "%.0f °C"
-            args: [x]
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_temp_buero
+                text:
+                  format: "%.0f °C"
+                  args: [x]
 
 lvgl:
   widgets:
