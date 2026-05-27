@@ -1,0 +1,287 @@
+# External icon fonts - auto-generated for icons used in this design
+# ESPHome downloads fonts automatically on first compile
+font:
+  - file:
+      url: "https://cdn.jsdelivr.net/npm/@mdi/font@latest/fonts/materialdesignicons-webfont.ttf"
+      type: web
+    id: mdi_icons_24
+    size: 24
+    glyphs: [
+      "\U000F0599",  # Sunny
+      "\U000F06A5",  # Power Plug
+      "\U000F0238",  # Fire
+      "\U000F1533",  # Heat Wave
+    ]
+
+lvgl:
+  pages:
+    - id: canvas_1
+      bg_color: 0x111827
+      pad_all: 0
+      widgets:
+        - obj:
+            id: lv_obj_7
+            x: 405
+            y: 80
+            width: 375
+            height: 320
+            bg_color: 0x151F32
+            border_width: 1
+            border_color: 0xX1E293B
+            radius: 8
+            pad_all: 0
+            widgets:
+              - label:
+                  id: widget_1779357470848_vn1e58zhn
+                  x: 137
+                  y: 167
+                  width: 100
+                  height: 15
+                  text: "0.3 kW"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779366729398_ar079hk2v
+                  x: 9
+                  y: 167
+                  width: 48
+                  height: 15
+                  text: "100%"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779366870614_kwccr47fw
+                  x: 9
+                  y: 273
+                  width: 48
+                  height: 15
+                  text: "100%"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779366953972_vnf0vdbyc
+                  x: 163
+                  y: 273
+                  width: 48
+                  height: 15
+                  text: "0.0 kW"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779367071149_4ybwnjblt
+                  x: 284
+                  y: 273
+                  width: 65
+                  height: 15
+                  text: "48.2 G C"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779366986722_fxfix8a7r
+                  x: 129
+                  y: 288
+                  width: 115
+                  height: 15
+                  text: "Heute: 0 Starts"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779367098469_1hglq1nof
+                  x: 258
+                  y: 288
+                  width: 115
+                  height: 15
+                  text: "Rück: 33 G C"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779358345333_js32mc1dc
+                  x: 0
+                  y: 62
+                  width: 65
+                  height: 15
+                  text: "3.8 kW"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779358561378_im282p3lq
+                  x: 154
+                  y: 62
+                  width: 65
+                  height: 15
+                  text: "2.4 kW"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: lv_icon_8
+                  x: 5
+                  y: 7
+                  width: 55
+                  height: 55
+                  text: "\U000F0599"
+                  text_font: mdi_icons_24
+                  text_align: CENTER
+                  text_color: 0xEAFF00
+              - label:
+                  id: lv_icon_9
+                  x: 292
+                  y: 10
+                  width: 48
+                  height: 48
+                  text: "\uF0E7"
+                  text_font: montserrat_24
+                  text_align: CENTER
+                  text_color: 0xFF0000
+              - label:
+                  id: lv_icon_10
+                  x: 163
+                  y: 10
+                  width: 48
+                  height: 48
+                  text: "\U000F06A5"
+                  text_font: mdi_icons_24
+                  text_align: CENTER
+                  text_color: 0xFFFFFF
+              - label:
+                  id: lv_icon_14
+                  x: 9
+                  y: 109
+                  width: 48
+                  height: 48
+                  text: "\uF240"
+                  text_font: montserrat_24
+                  text_align: CENTER
+                  text_color: 0xFFFFFF
+              - label:
+                  id: widget_1779366857754_cyccwx5hj
+                  x: 9
+                  y: 210
+                  width: 48
+                  height: 48
+                  text: "\uF240"
+                  text_font: montserrat_24
+                  text_align: CENTER
+                  text_color: 0xA090E0
+              - label:
+                  id: lv_icon_16
+                  x: 163
+                  y: 210
+                  width: 48
+                  height: 48
+                  text: "\U000F0238"
+                  text_font: mdi_icons_24
+                  text_align: CENTER
+                  text_color: 0xFF0000
+              - label:
+                  id: lv_icon_17
+                  x: 292
+                  y: 210
+                  width: 48
+                  height: 48
+                  text: "\U000F1533"
+                  text_font: mdi_icons_24
+                  text_align: CENTER
+                  text_color: 0xFFFFFF
+              - line:
+                  id: lv_line_18
+                  x: 37
+                  y: 0
+                  width: 105
+                  height: 105
+                  points:
+                    - 20, 50
+                    - 180, 50
+                  line_color: 0xFFFFFF
+              - line:
+                  id: widget_1779367141817_t6ruuicnb
+                  x: 37
+                  y: 17
+                  width: 126
+                  height: 150
+                  points:
+                    - 20, 50
+                    - 180, 135
+                  line_color: 0xFFFFFF
+              - line:
+                  id: lv_line_19
+                  x: 11
+                  y: 38
+                  width: 200
+                  height: 90
+                  points:
+                    - 20, 50
+                    - 20, 70
+                  line_color: 0xFFFFFF
+              - label:
+                  id: lv_label_6
+                  x: 137
+                  y: 152
+                  width: 100
+                  height: 15
+                  text: "Haus Gesamt"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779366714683_oh83hgvkc
+                  x: 9
+                  y: 152
+                  width: 48
+                  height: 15
+                  text: "Akku"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779366862074_mzgewk8xk
+                  x: 9
+                  y: 258
+                  width: 48
+                  height: 15
+                  text: "Buzz"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779366932594_vdorzh9cc
+                  x: 142
+                  y: 258
+                  width: 90
+                  height: 15
+                  text: "Wärmepumpe"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779367050841_p54t0b7lr
+                  x: 271
+                  y: 258
+                  width: 90
+                  height: 15
+                  text: "Warmwasser"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779358542642_n1vo7k0k8
+                  x: 137
+                  y: 47
+                  width: 100
+                  height: 15
+                  text: "Einspeisung"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: widget_1779358153080_gqomaedc4
+                  x: 9
+                  y: 47
+                  width: 48
+                  height: 15
+                  text: "PV"
+                  text_color: 0xFFFFFF
+                  text_align: CENTER
+              - label:
+                  id: lv_icon_2
+                  x: 154
+                  y: 105
+                  width: 65
+                  height: 55
+                  text: "\uF015"
+                  text_font: montserrat_40
+                  text_align: CENTER
+                  text_color: 0xFFFFFF
