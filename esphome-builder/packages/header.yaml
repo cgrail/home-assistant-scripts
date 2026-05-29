@@ -105,14 +105,14 @@ lvgl:
               id: label_clock
               x: 20
               y: 11
-              text: "--:--"
+              text: "12:15"
               text_font: montserrat_48
               text_color: 0xE2E8F0
           - label:
               id: label_date
               x: 160
               y: 39
-              text: "..."
+              text: "Fr, 29.05.2026"
               text_font: montserrat_20_de
               text_color: 0x64748B
           - label:
@@ -120,7 +120,7 @@ lvgl:
               x: 350
               y: 39
               width: 225
-              text: "--"
+              text: "Sonnig"
               text_font: montserrat_20_de
               text_color: 0x64748B
               text_align: right
@@ -136,7 +136,7 @@ lvgl:
               x: 600
               y: 11
               width: 150
-              text: "-- °C"
+              text: "22 °C"
               text_font: montserrat_48_temp
               text_color: 0xE2E8F0
               text_align: right

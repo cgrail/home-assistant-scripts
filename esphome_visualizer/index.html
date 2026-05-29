@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>ESPHome LVGL Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'Material Design Icons';
+  src: url('https://cdn.jsdelivr.net/npm/@mdi/font@7/fonts/materialdesignicons-webfont.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #040810;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  gap: 12px;
+  font-family: 'Montserrat', system-ui, sans-serif;
+  color: #64748b;
+  min-height: 100vh;
+}
+
+h1 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #1e293b; }
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.toolbar label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+input[type=range] { width: 100px; accent-color: #38bdf8; cursor: pointer; }
+
+button {
+  background: #0f1e32;
+  color: #94a3b8;
+  border: 1px solid #1e293b;
+  padding: 4px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+button:hover { background: #1e3a5f; color: #e2e8f0; }
+button.active { background: #1e3a5f; color: #38bdf8; border-color: #38bdf8; }
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+}
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #374151;
+  transition: background .3s;
+}
+.dot.connected { background: #4ade80; box-shadow: 0 0 6px #4ade8066; }
+.dot.error { background: #f87171; }
+
+canvas { display: block; border-radius: 4px; box-shadow: 0 0 40px #000c; }
+
+#error-box {
+  display: none;
+  background: #1c0a0a;
+  border: 1px solid #7f1d1d;
+  color: #fca5a5;
+  font-size: 12px;
+  font-family: monospace;
+  padding: 12px 16px;
+  border-radius: 8px;
+  max-width: 800px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+</style>
+</head>
+<body>
+<h1>CrowPanel 7" HMI · ESPHome LVGL Preview</h1>
+
+<div class="toolbar">
+  <label>Zoom
+    <input type="range" id="zoom" min="40" max="150" value="100" step="5">
+    <span id="zoomLabel">100%</span>
+  </label>
+  <button id="btnHidden">Show hidden</button>
+  <div class="status">
+    <div class="dot" id="dot"></div>
+    <span id="statusText">connecting…</span>
+  </div>
+</div>
+
+<canvas id="c"></canvas>
+<div id="error-box"></div>
+
+<script>
+'use strict';
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let layout = null;
+let showHidden = false;
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const DEG = Math.PI / 180;
+
+// ── Color helpers ─────────────────────────────────────────────────────────────
+function toHex(n) {
+  if (typeof n === 'number') {
+    return '#' + (n >>> 0).toString(16).padStart(6, '0');
+  }
+  if (typeof n === 'string') {
+    // Handle garbled values like "0xX1E293B" (typos in YAML)
+    const cleaned = n.replace(/^0x[xX]*/i, '').replace(/[^0-9a-fA-F]/g, '');
+    return '#' + cleaned.slice(-6).padStart(6, '0');
+  }
+  return '#000000';
+}
+
+function parseOpa(opa) {
+  if (typeof opa === 'string' && opa.endsWith('%')) return parseInt(opa, 10) / 100;
+  if (typeof opa === 'number') return opa > 1 ? opa / 255 : opa;
+  return 1;
+}
+
+// ── Font helpers ──────────────────────────────────────────────────────────────
+function getFontSize(fontId, fonts) {
+  if (!fontId) return 20;
+  if (fonts[fontId]) return fonts[fontId];
+  // Fallback: extract trailing number from ID, e.g. "montserrat_48_temp" → 48
+  const nums = fontId.match(/(\d+)/g);
+  if (nums) return parseInt(nums[nums.length - 1], 10);
+  return 16;
+}
+
+function getFontFamily(fontId) {
+  if (!fontId) return "'Montserrat', system-ui, sans-serif";
+  if (fontId.startsWith('mdi') || fontId.includes('mdi_')) {
+    return '"Material Design Icons", serif';
+  }
+  return "'Montserrat', system-ui, sans-serif";
+}
+
+// ── Rounded rect path ─────────────────────────────────────────────────────────
+function rrect(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y,     x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x,     y + h, r);
+  ctx.arcTo(x,     y + h, x,     y,     r);
+  ctx.arcTo(x,     y,     x + w, y,     r);
+  ctx.closePath();
+}
+
+// ── Widget renderers ──────────────────────────────────────────────────────────
+
+function renderWidget(w, fonts) {
+  if (!w) return;
+  const hidden = w.hidden === true;
+  if (hidden && !showHidden) return;
+
+  ctx.save();
+  if (hidden) ctx.globalAlpha *= 0.2;
+
+  switch (w.type) {
+    case 'obj':   renderObj(w, fonts);   break;
+    case 'label': renderLabel(w, fonts); break;
+    case 'line':  renderLine(w);         break;
+    case 'arc':   renderArc(w);          break;
+  }
+
+  ctx.restore();
+}
+
+function renderObj(w, fonts) {
+  const x      = w.x ?? 0;
+  const y      = w.y ?? 0;
+  const width  = w.width ?? 0;
+  const height = w.height ?? 0;
+  const r      = w.radius ?? 0;
+  const bw     = w.border_width ?? 0;
+
+  if (w.bg_opa !== undefined) {
+    ctx.globalAlpha *= parseOpa(w.bg_opa);
+  }
+
+  if (w.bg_color !== undefined) {
+    rrect(x, y, width, height, r);
+    ctx.fillStyle = toHex(w.bg_color);
+    ctx.fill();
+  }
+
+  if (bw > 0 && w.border_color !== undefined) {
+    rrect(x, y, width, height, r);
+    ctx.strokeStyle = toHex(w.border_color);
+    ctx.lineWidth = bw;
+    ctx.stroke();
+  }
+
+  // Hidden outline hint when "show hidden" is on
+  if (w.hidden && showHidden) {
+    rrect(x, y, width, height, r);
+    ctx.save();
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = '#f87171';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (w.children && w.children.length > 0) {
+    ctx.save();
+    ctx.translate(x, y);
+    for (const child of w.children) renderWidget(child, fonts);
+    ctx.restore();
+  }
+}
+
+function renderLabel(w, fonts) {
+  const text = w.text;
+  if (text == null || text === '') return;
+
+  const x      = w.x ?? 0;
+  const y      = w.y ?? 0;
+  const width  = w.width ?? 0;
+  const size   = getFontSize(w.text_font, fonts);
+  const family = getFontFamily(w.text_font);
+  const align  = (w.text_align ?? 'left').toLowerCase();
+  const color  = w.text_color !== undefined ? toHex(w.text_color) : '#ffffff';
+
+  ctx.save();
+  ctx.font = `400 ${size}px ${family}`;
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'top';
+
+  if (align === 'center' && width > 0) {
+    ctx.textAlign = 'center';
+    ctx.fillText(String(text), x + width / 2, y);
+  } else if (align === 'right' && width > 0) {
+    ctx.textAlign = 'right';
+    ctx.fillText(String(text), x + width, y);
+  } else {
+    ctx.textAlign = 'left';
+    ctx.fillText(String(text), x, y);
+  }
+  ctx.restore();
+}
+
+function renderLine(w) {
+  const pts = w.points;
+  if (!pts || pts.length < 2) return;
+
+  const ox = w.x ?? 0;
+  const oy = w.y ?? 0;
+
+  ctx.save();
+  if (ox !== 0 || oy !== 0) ctx.translate(ox, oy);
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+
+  ctx.strokeStyle = toHex(w.line_color ?? 0xffffff);
+  ctx.lineWidth   = w.line_width ?? 1;
+  ctx.lineCap     = w.line_rounded ? 'round' : 'butt';
+  ctx.lineJoin    = 'round';
+  ctx.stroke();
+  ctx.restore();
+}
+
+function renderArc(w) {
+  const x      = w.x ?? 0;
+  const y      = w.y ?? 0;
+  const width  = w.width ?? 80;
+  const height = w.height ?? 80;
+  const aw     = w.arc_width ?? 4;
+  const iw     = w.indicator_width ?? aw;
+  const val    = w.value ?? 0;
+  const minV   = w.min_value ?? 0;
+  const maxV   = w.max_value ?? 100;
+
+  const cx = x + width / 2;
+  const cy = y + height / 2;
+  const r  = (Math.min(width, height) - aw) / 2;
+
+  const startA = 135 * DEG;
+  const sweepA = 270 * DEG;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+
+  // Background arc
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startA, startA + sweepA);
+  ctx.strokeStyle = toHex(w.arc_color ?? 0x1e293b);
+  ctx.lineWidth   = aw;
+  ctx.stroke();
+
+  // Indicator arc
+  const frac = maxV > minV ? Math.max(0, Math.min(1, (val - minV) / (maxV - minV))) : 0;
+  if (frac > 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startA, startA + frac * sweepA);
+    ctx.strokeStyle = toHex(w.indicator_color ?? w.arc_color ?? 0x4ade80);
+    ctx.lineWidth   = iw;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ── Main draw ─────────────────────────────────────────────────────────────────
+function draw() {
+  if (!layout) return;
+
+  canvas.width  = layout.display.width;
+  canvas.height = layout.display.height;
+  applyZoom();
+
+  // Screen background
+  ctx.fillStyle = toHex(layout.bg_color ?? 0x0b1120);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (const w of layout.widgets) {
+    renderWidget(w, layout.fonts);
+  }
+}
+
+// ── Error display ─────────────────────────────────────────────────────────────
+const errorBox = document.getElementById('error-box');
+
+function showError(msg) {
+  errorBox.style.display = 'block';
+  errorBox.textContent = '⚠ YAML parse error:\n\n' + msg;
+}
+function clearError() {
+  errorBox.style.display = 'none';
+}
+
+// ── Fetch layout ──────────────────────────────────────────────────────────────
+async function fetchLayout() {
+  try {
+    const res = await fetch('/api/layout');
+    const data = await res.json();
+    if (data.error) {
+      showError(data.error);
+      return;
+    }
+    clearError();
+    layout = data;
+    draw();
+  } catch (e) {
+    showError('Could not reach server: ' + e.message);
+  }
+}
+
+// ── SSE ───────────────────────────────────────────────────────────────────────
+const dot        = document.getElementById('dot');
+const statusText = document.getElementById('statusText');
+
+function connectSSE() {
+  const es = new EventSource('/events');
+
+  es.onopen = () => {
+    dot.className = 'dot connected';
+    statusText.textContent = 'live';
+  };
+
+  es.addEventListener('reload', () => {
+    statusText.textContent = 'reloading…';
+    fetchLayout().then(() => { statusText.textContent = 'live'; });
+  });
+
+  es.onerror = () => {
+    dot.className = 'dot error';
+    statusText.textContent = 'disconnected — retrying';
+    // EventSource auto-reconnects; update UI once it does
+    es.addEventListener('open', () => {
+      dot.className = 'dot connected';
+      statusText.textContent = 'live';
+    }, { once: true });
+  };
+}
+
+// ── Zoom ──────────────────────────────────────────────────────────────────────
+const zoomSlider = document.getElementById('zoom');
+const zoomLabel  = document.getElementById('zoomLabel');
+
+function applyZoom() {
+  const z = zoomSlider.value / 100;
+  canvas.style.width  = (canvas.width  * z) + 'px';
+  canvas.style.height = (canvas.height * z) + 'px';
+  zoomLabel.textContent = zoomSlider.value + '%';
+}
+
+zoomSlider.addEventListener('input', applyZoom);
+
+// ── Show-hidden toggle ────────────────────────────────────────────────────────
+const btnHidden = document.getElementById('btnHidden');
+btnHidden.addEventListener('click', () => {
+  showHidden = !showHidden;
+  btnHidden.classList.toggle('active', showHidden);
+  draw();
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+document.fonts.ready.then(() => {
+  fetchLayout();
+  connectSSE();
+});
+</script>
+</body>
+</html>
