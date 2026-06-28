@@ -244,7 +244,7 @@ function renderLabel(w, fonts) {
   const color  = w.text_color !== undefined ? toHex(w.text_color) : '#ffffff';
 
   ctx.save();
-  ctx.font = `400 ${size}px ${family}`;
+  ctx.font = `${size}px ${family}`;
   ctx.fillStyle = color;
   ctx.textBaseline = 'top';
 
@@ -419,7 +419,16 @@ btnHidden.addEventListener('click', () => {
 });
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
-document.fonts.ready.then(() => {
+
+// Re-render whenever any webfont (e.g. MDI downloaded from CDN) finishes loading
+document.fonts.addEventListener('loadingdone', () => { if (layout) draw(); });
+
+document.fonts.ready.then(async () => {
+  // Explicitly trigger downloads so canvas has the glyphs on first render
+  await Promise.allSettled([
+    document.fonts.load("20px 'Montserrat'"),
+    document.fonts.load("20px 'Material Design Icons'"),
+  ]);
   fetchLayout();
   connectSSE();
 });

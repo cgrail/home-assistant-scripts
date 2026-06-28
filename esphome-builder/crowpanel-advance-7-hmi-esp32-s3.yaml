@@ -6,9 +6,9 @@ packages:
   header: !include packages/header.yaml
   trains: !include packages/trains.yaml
   history: !include packages/history.yaml
-  live_panel: !include packages/live_panel.yaml
+  live_panel: !include packages/live_new.yaml
   room_temp: !include packages/room_temp.yaml
-  overlays: !include packages/overlays.yaml
+#  overlays: !include packages/overlays.yaml
 
 esp32:
   board: esp32-s3-devkitc-1
