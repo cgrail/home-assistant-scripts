@@ -1,317 +1,330 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Live panel — energy flow diagram with animated "electrons"
+#
+# Every connection is built from three kinds of widgets:
+#   line_<flow>    the wire (dimmed colour, width scales with the power)
+#   head_<flow>    the arrow head at the destination (bright colour)
+#   dot_<flow>_N   glowing pulses that travel along the wire
+#
+# The sensors only normalise their value to kW and store it in a global.
+# Visibility, wire width and pulse speed are derived centrally in the 50 ms
+# interval below, so a flow is never inconsistent with the numbers next to it.
+# ─────────────────────────────────────────────────────────────────────────────
+
 globals:
-  - id: live_anim_step
-    type: int
+  # Raw power values, all normalised to kW.
+  - id: pv_kw
+    type: float
     restore_value: false
     initial_value: '0'
-  - id: line_pv_haus_width
-    type: int
+  - id: export_kw
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: import_kw
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: batt_kw          # positive = charging, negative = discharging
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: house_kw
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: wp_kw
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: buzz_kw
+    type: float
     restore_value: false
     initial_value: '0'
 
 sensor:
   - platform: homeassistant
-    id: gesamt_stromverbrauch
-    entity_id: sensor.gesamt_stromverbrauch_in_kwh
-    on_value:
-      - lvgl.label.update:
-          id: val_gesamt
-          text:
-            format: "%.1f kW"
-            args: [x]
-      - lambda: id(line_pv_haus_width) = std::max(1, std::min(10, (int)(x * 2)));
-      - lvgl.line.update:
-          id: line_pv_haus_d0
-          line_width: !lambda 'return id(line_pv_haus_width);'
-      - lvgl.line.update:
-          id: line_pv_haus_d1
-          line_width: !lambda 'return id(line_pv_haus_width);'
-      - lvgl.line.update:
-          id: line_pv_haus_d2
-          line_width: !lambda 'return id(line_pv_haus_width);'
-      - if:
-          condition:
-            lambda: 'return x > 0;'
-          then:
-            - lvgl.widget.show:
-                id: line_pv_haus
-          else:
-            - lvgl.widget.hide:
-                id: line_pv_haus
-
-  - platform: homeassistant
-    id: hausverbrauch_ohne_wp
-    entity_id: sensor.hausverbrauch_ohne_wp
-    on_value:
-      - lvgl.label.update:
-          id: val_hauswp
-          text:
-            format: "%.1f kW"
-            args: [x]
-
-  - platform: homeassistant
-    id: batterie_ladeleistung
-    entity_id: sensor.batterie_ladeleistung_entladeleistung
-    on_value:
-      - lambda: |-
-          int w = (int)(x / 1000.0f + 0.5f);
-          if (w < 1) w = 1;
-          if (w > 10) w = 10;
-          lv_obj_set_style_line_width(id(line_pv_akku)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
-      - if:
-          condition:
-            lambda: 'return x > 50;'
-          then:
-            - lvgl.widget.show:
-                id: line_pv_akku
-          else:
-            - lvgl.widget.hide:
-                id: line_pv_akku
-      - if:
-          condition:
-            lambda: 'return x < -50;'
-          then:
-            - lvgl.widget.show:
-                id: line_akku_haus
-          else:
-            - lvgl.widget.hide:
-                id: line_akku_haus
-
-  - platform: homeassistant
-    id: byd_battery_box_premium_hv_state_of_charge
-    entity_id: sensor.byd_battery_box_premium_hv_state_of_charge
-    on_value:
-      - lvgl.label.update:
-          id: val_akku
-          text:
-            format: "%.0f%%"
-            args: [x]
-      # Updates the visual Arc matching the battery percentage!
-      - lvgl.arc.update:
-          id: arc_akku
-          value: !lambda 'return x;'
-
-  - platform: homeassistant
     id: pv
     entity_id: sensor.solarnet_power_photovoltaics
     on_value:
+      - lambda: 'id(pv_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
       - lvgl.label.update:
           id: val_pv
           text:
             format: "%.1f kW"
-            args: [x/1000]
-
-  - platform: homeassistant
-    id: netzbezug
-    entity_id: sensor.solarnet_power_grid_import
-    on_value:
-      - lvgl.label.update:
-          id: val_netz
-          text:
-            format: "%.1f kW"
-            args: [x/1000]
-      - lambda: |-
-          int w = (int)(x / 1000.0f + 0.5f);
-          if (w < 1) w = 1;
-          if (w > 10) w = 10;
-          lv_obj_set_style_line_width(id(line_netz_haus)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
-      - if:
-          condition:
-            lambda: 'return x > 50;'
-          then:
-            - lvgl.widget.show:
-                id: line_netz_haus
-          else:
-            - lvgl.widget.hide:
-                id: line_netz_haus
+            args: ['id(pv_kw)']
 
   - platform: homeassistant
     id: pv_eingespeist
     entity_id: sensor.solarnet_power_grid_export
     on_value:
+      - lambda: 'id(export_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
       - lvgl.label.update:
           id: val_eingespeist
           text:
             format: "%.1f kW"
-            args: [x/1000]
-      - lambda: |-
-          int w = (int)(x / 1000.0f + 0.5f);
-          if (w < 1) w = 1;
-          if (w > 10) w = 10;
-          lv_obj_set_style_line_width(id(line_pv_einspeisung)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
-      - if:
-          condition:
-            lambda: 'return x > 50;'
-          then:
-            - lvgl.widget.show:
-                id: line_pv_einspeisung
-          else:
-            - lvgl.widget.hide:
-                id: line_pv_einspeisung
+            args: ['id(export_kw)']
+
+  - platform: homeassistant
+    id: netzbezug
+    entity_id: sensor.solarnet_power_grid_import
+    on_value:
+      - lambda: 'id(import_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
+      - lvgl.label.update:
+          id: val_netz
+          text:
+            format: "%.1f kW"
+            args: ['id(import_kw)']
+
+  - platform: homeassistant
+    id: batterie_ladeleistung
+    entity_id: sensor.batterie_ladeleistung_entladeleistung
+    on_value:
+      - lambda: 'id(batt_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
+
+  - platform: homeassistant
+    id: gesamt_stromverbrauch
+    entity_id: sensor.gesamt_stromverbrauch_in_kwh
+    on_value:
+      - lambda: 'id(house_kw) = isnan(x) ? 0.0f : x;'
+      - lvgl.label.update:
+          id: val_gesamt
+          text:
+            format: "%.1f kW"
+            args: ['id(house_kw)']
 
   - platform: homeassistant
     id: wp
     entity_id: sensor.strom_warmpumpe_in_kwh
     on_value:
+      - lambda: 'id(wp_kw) = isnan(x) ? 0.0f : x;'
       - lvgl.label.update:
           id: val_wp
           text:
             format: "%.1f kW"
-            args: [x]
-      - lambda: |-
-          int w = (int)(x * 3.0f);
-          if (w < 1) w = 1;
-          if (w > 10) w = 10;
-          lv_obj_set_style_line_width(id(line_haus_wp)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
-      - if:
-          condition:
-            lambda: 'return x > 0;'
-          then:
-            - lvgl.widget.show:
-                id: line_haus_wp
-          else:
-            - lvgl.widget.hide:
-                id: line_haus_wp
+            args: ['id(wp_kw)']
 
   - platform: homeassistant
     id: wattpilot_charging_power
     entity_id: sensor.wattpilot_charging_power
     on_value:
-      - lambda: |-
-          int w = (int)(x / 1000.0f + 0.5f);
-          if (w < 1) w = 1;
-          if (w > 10) w = 10;
-          lv_obj_set_style_line_width(id(line_haus_buzz)->obj, w, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_DEFAULT);
+      - lambda: 'id(buzz_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
+
+  # ── Values that are only displayed ───────────────────────────
+  - platform: homeassistant
+    id: hausverbrauch_ohne_wp
+    entity_id: sensor.hausverbrauch_ohne_wp
+    on_value:
       - if:
           condition:
-            lambda: 'return x > 50;'
+            lambda: 'return !isnan(x);'
           then:
-            - lvgl.widget.show:
-                id: line_haus_buzz
+            - lvgl.label.update:
+                id: val_hauswp
+                text:
+                  format: "%.1f kW"
+                  args: [x]
+
+  - platform: homeassistant
+    id: byd_battery_box_premium_hv_state_of_charge
+    entity_id: sensor.byd_battery_box_premium_hv_state_of_charge
+    on_value:
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_akku
+                text:
+                  format: "%.0f%%"
+                  args: [x]
+            - lvgl.arc.update:
+                id: arc_akku
+                value: !lambda 'return x;'
           else:
-            - lvgl.widget.hide:
-                id: line_haus_buzz
-
-  - platform: homeassistant
-    id: tagliche_wp_heizzyklen
-    entity_id: sensor.tagliche_wp_heizzyklen
-    on_value:
-      - lvgl.label.update:
-          id: val_wp_zyklen
-          text:
-            format: "Heute: %.0f Starts"
-            args: [x]
-
-  - platform: homeassistant
-    id: wp_ruecklauf
-    entity_id: sensor.luxtronik_350107_0371_flow_out_temperature
-    on_value:
-      - lvgl.label.update:
-          id: val_wp_ruecklauf
-          text:
-            format: "Rück: %.1f °C"
-            args: [x]
-
-  - platform: homeassistant
-    id: ww_temperatur
-    entity_id: sensor.hybrox_11_grail_dhw
-    on_value:
-      - lvgl.label.update:
-          id: val_wasser
-          text:
-            format: "%.1f °C"
-            args: [x]
+            - lvgl.label.update:
+                id: val_akku
+                text: "-- %"
+            - lvgl.arc.update:
+                id: arc_akku
+                value: 0
 
   - platform: homeassistant
     id: buzz_battery_level
     entity_id: sensor.buzz_battery_level
     on_value:
-      - lvgl.label.update:
-          id: val_buzz
-          text:
-            format: "%.0f%%"
-            args: [x]
-      - lvgl.arc.update:
-          id: arc_buzz
-          value: !lambda 'return x;'
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_buzz
+                text:
+                  format: "%.0f%%"
+                  args: [x]
+            - lvgl.arc.update:
+                id: arc_buzz
+                value: !lambda 'return x;'
+          else:
+            - lvgl.label.update:
+                id: val_buzz
+                text: "-- %"
+            - lvgl.arc.update:
+                id: arc_buzz
+                value: 0
+
+  - platform: homeassistant
+    id: tagliche_wp_heizzyklen
+    entity_id: sensor.tagliche_wp_heizzyklen
+    on_value:
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_wp_zyklen
+                text:
+                  format: "Heute: %.0f Starts"
+                  args: [x]
+
+  - platform: homeassistant
+    id: wp_ruecklauf
+    entity_id: sensor.luxtronik_350107_0371_flow_out_temperature
+    on_value:
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_wp_ruecklauf
+                text:
+                  format: "Rück: %.1f °C"
+                  args: [x]
+
+  - platform: homeassistant
+    id: ww_temperatur
+    entity_id: sensor.hybrox_11_grail_dhw
+    on_value:
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lvgl.label.update:
+                id: val_wasser
+                text:
+                  format: "%.1f °C"
+                  args: [x]
 
 interval:
-  - interval: 1s
+  # 20 fps animation of the energy flows.
+  - interval: 50ms
     then:
       - lambda: |-
-          bool vis_haus         = !lv_obj_has_flag(id(line_pv_haus)->obj, LV_OBJ_FLAG_HIDDEN);
-          bool vis_akku         = !lv_obj_has_flag(id(line_pv_akku)->obj, LV_OBJ_FLAG_HIDDEN);
-          bool vis_akku_haus    = !lv_obj_has_flag(id(line_akku_haus)->obj, LV_OBJ_FLAG_HIDDEN);
-          bool vis_wp           = !lv_obj_has_flag(id(line_haus_wp)->obj, LV_OBJ_FLAG_HIDDEN);
-          bool vis_netz         = !lv_obj_has_flag(id(line_netz_haus)->obj, LV_OBJ_FLAG_HIDDEN);
-          bool vis_buzz         = !lv_obj_has_flag(id(line_haus_buzz)->obj, LV_OBJ_FLAG_HIDDEN);
-          bool vis_einspeisung  = !lv_obj_has_flag(id(line_pv_einspeisung)->obj, LV_OBJ_FLAG_HIDDEN);
-          int step = id(live_anim_step);
-          lv_obj_t* dashes_haus[3] = {
-            id(line_pv_haus_d0)->obj,
-            id(line_pv_haus_d1)->obj,
-            id(line_pv_haus_d2)->obj,
+          // Split the raw meter readings into the seven directed flows (kW).
+          const float batt_charge = std::max(0.0f, id(batt_kw));
+          const float batt_supply = std::max(0.0f, -id(batt_kw));
+          const float pv_direct = std::max(0.0f, id(pv_kw) - id(export_kw) - batt_charge);
+          const float flow_kw[7] = {
+            batt_charge,     // 0  PV -> Akku
+            id(export_kw),   // 1  PV -> Einspeisung
+            pv_direct,       // 2  PV -> Haus
+            id(import_kw),   // 3  Netz -> Haus
+            batt_supply,     // 4  Akku -> Haus
+            id(wp_kw),       // 5  Haus -> Wärmepumpe
+            id(buzz_kw),     // 6  Haus -> Buzz
           };
-          lv_obj_t* dashes_akku[3] = {
-            id(line_pv_akku_d0)->obj,
-            id(line_pv_akku_d1)->obj,
-            id(line_pv_akku_d2)->obj,
+          // Start point, arrow tip and number of pulses of each wire.
+          static const struct { int16_t x0, y0, x1, y1; uint8_t pulses; } PATH[7] = {
+            { 50,  55,  50, 110, 3},
+            { 88,  20, 128,  20, 2},
+            { 88,  55, 154, 102, 3},
+            {292,  55, 199, 100, 4},
+            { 90, 155, 115, 155, 2},
+            {177, 186, 177, 233, 2},
+            {120, 186,  90, 235, 3},
           };
-          lv_obj_t* dashes_akku_haus[3] = {
-            id(line_akku_haus_d0)->obj,
-            id(line_akku_haus_d1)->obj,
-            id(line_akku_haus_d2)->obj,
+          lv_obj_t *wire[7] = {
+            id(line_pv_akku)->obj,
+            id(line_pv_einspeisung)->obj,
+            id(line_pv_haus)->obj,
+            id(line_netz_haus)->obj,
+            id(line_akku_haus)->obj,
+            id(line_haus_wp)->obj,
+            id(line_haus_buzz)->obj,
           };
-          lv_obj_t* dashes_wp[3] = {
-            id(line_haus_wp_d0)->obj,
-            id(line_haus_wp_d1)->obj,
-            id(line_haus_wp_d2)->obj,
+          lv_obj_t *head[7] = {
+            id(head_pv_akku)->obj,
+            id(head_pv_einspeisung)->obj,
+            id(head_pv_haus)->obj,
+            id(head_netz_haus)->obj,
+            id(head_akku_haus)->obj,
+            id(head_haus_wp)->obj,
+            id(head_haus_buzz)->obj,
           };
-          lv_obj_t* dashes_netz[3] = {
-            id(line_netz_haus_d0)->obj,
-            id(line_netz_haus_d1)->obj,
-            id(line_netz_haus_d2)->obj,
+          lv_obj_t *pulse[7][4] = {
+            {id(dot_pv_akku_0),   id(dot_pv_akku_1),   id(dot_pv_akku_2),   nullptr},
+            {id(dot_pv_einsp_0),  id(dot_pv_einsp_1),  nullptr,             nullptr},
+            {id(dot_pv_haus_0),   id(dot_pv_haus_1),   id(dot_pv_haus_2),   nullptr},
+            {id(dot_netz_haus_0), id(dot_netz_haus_1), id(dot_netz_haus_2), id(dot_netz_haus_3)},
+            {id(dot_akku_haus_0), id(dot_akku_haus_1), nullptr,             nullptr},
+            {id(dot_haus_wp_0),   id(dot_haus_wp_1),   nullptr,             nullptr},
+            {id(dot_haus_buzz_0), id(dot_haus_buzz_1), id(dot_haus_buzz_2), nullptr},
           };
-          lv_obj_t* dashes_buzz[3] = {
-            id(line_haus_buzz_d0)->obj,
-            id(line_haus_buzz_d1)->obj,
-            id(line_haus_buzz_d2)->obj,
-          };
-          lv_obj_t* dashes_einspeisung[3] = {
-            id(line_pv_einspeisung_d0)->obj,
-            id(line_pv_einspeisung_d1)->obj,
-            id(line_pv_einspeisung_d2)->obj,
-          };
-          for (int i = 0; i < 3; i++) {
-            if (vis_haus && i == step)
-              lv_obj_clear_flag(dashes_haus[i], LV_OBJ_FLAG_HIDDEN);
-            else
-              lv_obj_add_flag(dashes_haus[i], LV_OBJ_FLAG_HIDDEN);
-            if (vis_akku && i == step)
-              lv_obj_clear_flag(dashes_akku[i], LV_OBJ_FLAG_HIDDEN);
-            else
-              lv_obj_add_flag(dashes_akku[i], LV_OBJ_FLAG_HIDDEN);
-            if (vis_akku_haus && i == step)
-              lv_obj_clear_flag(dashes_akku_haus[i], LV_OBJ_FLAG_HIDDEN);
-            else
-              lv_obj_add_flag(dashes_akku_haus[i], LV_OBJ_FLAG_HIDDEN);
-            if (vis_wp && i == step)
-              lv_obj_clear_flag(dashes_wp[i], LV_OBJ_FLAG_HIDDEN);
-            else
-              lv_obj_add_flag(dashes_wp[i], LV_OBJ_FLAG_HIDDEN);
-            if (vis_netz && i == step)
-              lv_obj_clear_flag(dashes_netz[i], LV_OBJ_FLAG_HIDDEN);
-            else
-              lv_obj_add_flag(dashes_netz[i], LV_OBJ_FLAG_HIDDEN);
-            if (vis_buzz && i == step)
-              lv_obj_clear_flag(dashes_buzz[i], LV_OBJ_FLAG_HIDDEN);
-            else
-              lv_obj_add_flag(dashes_buzz[i], LV_OBJ_FLAG_HIDDEN);
-            if (vis_einspeisung && i == step)
-              lv_obj_clear_flag(dashes_einspeisung[i], LV_OBJ_FLAG_HIDDEN);
-            else
-              lv_obj_add_flag(dashes_einspeisung[i], LV_OBJ_FLAG_HIDDEN);
+          const lv_style_selector_t sel = (lv_style_selector_t) LV_PART_MAIN | (lv_style_selector_t) LV_STATE_DEFAULT;
+          // Animation position (0…1) of the pulses on each wire, and the wire
+          // width that is currently applied.
+          static float flow_phase[7] = {};
+          static int last_width[7] = {};
+
+          for (int f = 0; f < 7; f++) {
+            const bool active = flow_kw[f] > 0.05f;
+            // Only touch the hidden flag when the state actually changes.
+            if (active == lv_obj_has_flag(wire[f], LV_OBJ_FLAG_HIDDEN)) {
+              if (active) {
+                lv_obj_clear_flag(wire[f], LV_OBJ_FLAG_HIDDEN);
+                lv_obj_clear_flag(head[f], LV_OBJ_FLAG_HIDDEN);
+              } else {
+                lv_obj_add_flag(wire[f], LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(head[f], LV_OBJ_FLAG_HIDDEN);
+                for (int i = 0; i < PATH[f].pulses; i++)
+                  lv_obj_add_flag(pulse[f][i], LV_OBJ_FLAG_HIDDEN);
+              }
+            }
+            if (!active)
+              continue;
+
+            // 2 px wire at idle, 6 px from 4 kW upwards.
+            const int width = 2 + (int) (std::min(flow_kw[f], 4.0f) + 0.5f);
+            if (width != last_width[f]) {
+              lv_obj_set_style_line_width(wire[f], width, sel);
+              last_width[f] = width;
+            }
+
+            const float dx = PATH[f].x1 - PATH[f].x0;
+            const float dy = PATH[f].y1 - PATH[f].y0;
+            const float len = sqrtf(dx * dx + dy * dy);
+            // Pulses crawl at 18 px/s and speed up to ~88 px/s at 5 kW.
+            const float speed = 18.0f + 14.0f * std::min(flow_kw[f], 5.0f);
+            float phase = flow_phase[f] + speed * 0.05f / len;
+            if (phase >= 1.0f)
+              phase -= 1.0f;
+            flow_phase[f] = phase;
+
+            for (int i = 0; i < PATH[f].pulses; i++) {
+              lv_obj_t *p = pulse[f][i];
+              float t = phase + (float) i / PATH[f].pulses;
+              if (t >= 1.0f)
+                t -= 1.0f;
+              lv_obj_set_pos(p, (int) (PATH[f].x0 + dx * t + 0.5f) - 5,
+                                (int) (PATH[f].y0 + dy * t + 0.5f) - 5);
+              // Fade in at the source and out again at the arrow head.
+              const float fade = t < 0.2f ? t / 0.2f : (t > 0.8f ? (1.0f - t) / 0.2f : 1.0f);
+              lv_obj_set_style_bg_opa(p, (lv_opa_t) (255.0f * fade), sel);
+              lv_obj_set_style_shadow_opa(p, (lv_opa_t) (150.0f * fade), sel);
+              if (lv_obj_has_flag(p, LV_OBJ_FLAG_HIDDEN))
+                lv_obj_clear_flag(p, LV_OBJ_FLAG_HIDDEN);
+            }
           }
-          if (vis_haus || vis_akku || vis_akku_haus || vis_wp || vis_netz || vis_buzz || vis_einspeisung) id(live_anim_step) = (step + 1) % 3;
 
 font:
   - file: "https://github.com/Templarian/MaterialDesign-Webfont/raw/master/fonts/materialdesignicons-webfont.ttf"
@@ -333,7 +346,9 @@ lvgl:
         border_width: 1
         border_color: 0x1E293B
         pad_all: 0
+        scrollable: false
         widgets:
+          # ── Header row: PV, Einspeisung, Netzbezug ───────────
           - label:
               x: 30
               y: 10
@@ -352,84 +367,9 @@ lvgl:
               y: 30
               width: 90
               text_align: center
-              text: "0 kW"
+              text: "0.0 kW"
+              text_font: montserrat_20_de
               text_color: 0xF8FAFC
-          - line:
-              id: line_pv_akku
-              points:
-                - 50, 55
-                - 50, 110
-                - 44, 102
-                - 50, 110
-                - 56, 102
-              line_color: 0xCCFF00
-              line_width: 1
-              line_rounded: true
-          - line:
-              id: line_pv_akku_d0
-              points:
-                - 50, 55
-                - 50, 65
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_pv_akku_d1
-              points:
-                - 50, 69
-                - 50, 79
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_pv_akku_d2
-              points:
-                - 50, 83
-                - 50, 93
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_pv_einspeisung
-              points:
-                - 88, 20
-                - 128, 20
-                - 120, 14
-                - 128, 20
-                - 120, 26
-              line_color: 0xCCFF00
-              line_width: 10
-              line_rounded: true
-          - line:
-              id: line_pv_einspeisung_d0
-              points:
-                - 88, 20
-                - 98, 20
-              line_color: 0x151F32
-              line_width: 12
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_pv_einspeisung_d1
-              points:
-                - 99, 20
-                - 109, 20
-              line_color: 0x151F32
-              line_width: 12
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_pv_einspeisung_d2
-              points:
-                - 110, 20
-                - 120, 20
-              line_color: 0x151F32
-              line_width: 12
-              line_rounded: true
-              hidden: true
           - label:
               x: 120
               y: 10
@@ -444,7 +384,8 @@ lvgl:
               y: 30
               width: 115
               text_align: center
-              text: "0 kW"
+              text: "0.0 kW"
+              text_font: montserrat_20_de
               text_color: 0xF8FAFC
           - label:
               x: 235
@@ -460,10 +401,11 @@ lvgl:
               y: 30
               width: 115
               text_align: center
-              text: "0 kW"
+              text: "0.0 kW"
+              text_font: montserrat_20_de
               text_color: 0xF8FAFC
 
-          # --- Akku arc ---
+          # ── Akku arc ─────────────────────────────────────────
           - arc:
               id: arc_akku
               x: 10
@@ -484,7 +426,7 @@ lvgl:
               y: 140
               width: 80
               text: "-- %"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0xF8FAFC
               text_align: center
           - label:
@@ -492,11 +434,11 @@ lvgl:
               y: 154
               width: 80
               text: "Akku"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0x94A3B8
               text_align: center
 
-          # --- House icon ---
+          # ── House ────────────────────────────────────────────
           - obj:
               x: 120
               y: 120
@@ -512,7 +454,6 @@ lvgl:
                 - 240, 125
               line_color: 0x1E3A5F
               line_width: 5
-
           - label:
               x: 120
               y: 130
@@ -527,201 +468,9 @@ lvgl:
               y: 150
               width: 115
               text_align: center
-              text: "0 kW"
+              text: "0.0 kW"
+              text_font: montserrat_20_de
               text_color: 0xF8FAFC
-
-          - line:
-              id: line_akku_haus
-              points:
-                - 90, 155
-                - 115, 155
-                - 107, 149
-                - 115, 155
-                - 107, 161
-              line_color: 0x4ADE80
-              line_width: 2
-              line_rounded: true
-          - line:
-              id: line_akku_haus_d0
-              points:
-                - 90, 155
-                - 96, 155
-              line_color: 0x151F32
-              line_width: 3
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_akku_haus_d1
-              points:
-                - 96, 155
-                - 104, 155
-              line_color: 0x151F32
-              line_width: 3
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_akku_haus_d2
-              points:
-                - 104, 155
-                - 107, 155
-              line_color: 0x151F32
-              line_width: 3
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_pv_haus
-              points:
-                - 88, 55
-                - 145, 95
-                - 136, 94
-                - 145, 95
-                - 141, 87
-              line_color: 0xCCFF00
-              line_width: 1
-              line_rounded: true
-          - line:
-              id: line_pv_haus_d0
-              points:
-                - 88, 55
-                - 98, 62
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_pv_haus_d1
-              points:
-                - 102, 65
-                - 112, 72
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_pv_haus_d2
-              points:
-                - 116, 75
-                - 126, 82
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_netz_haus
-              points:
-                - 292, 55
-                - 210, 95
-                - 218, 96
-                - 210, 95
-                - 214, 88
-              line_color: 0xF87171
-              line_width: 2
-              line_rounded: true
-          - line:
-              id: line_netz_haus_d0
-              points:
-                - 292, 55
-                - 281, 60
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_netz_haus_d1
-              points:
-                - 276, 62
-                - 265, 67
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_netz_haus_d2
-              points:
-                - 260, 69
-                - 249, 74
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_haus_wp
-              points:
-                - 177, 186
-                - 177, 233
-                - 171, 225
-                - 177, 233
-                - 183, 225
-              line_color: 0xFF0000
-              line_width: 2
-              line_rounded: true
-          - line:
-              id: line_haus_wp_d0
-              points:
-                - 177, 186
-                - 177, 193
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_haus_wp_d1
-              points:
-                - 177, 199
-                - 177, 206
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_haus_wp_d2
-              points:
-                - 177, 213
-                - 177, 220
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-
-          - line:
-              id: line_haus_buzz
-              points:
-                - 120, 186
-                - 90, 235
-                - 99, 231
-                - 90, 235
-                - 89, 225
-              line_color: 0x38BDF8
-              line_width: 2
-              line_rounded: true
-          - line:
-              id: line_haus_buzz_d0
-              points:
-                - 120, 186
-                - 115, 195
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_haus_buzz_d1
-              points:
-                - 113, 198
-                - 108, 207
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-          - line:
-              id: line_haus_buzz_d2
-              points:
-                - 106, 210
-                - 101, 219
-              line_color: 0x151F32
-              line_width: 10
-              line_rounded: true
-              hidden: true
-
           - label:
               x: 235
               y: 130
@@ -736,11 +485,11 @@ lvgl:
               y: 150
               width: 115
               text_align: center
-              text: "0 kW"
+              text: "0.0 kW"
+              text_font: montserrat_20_de
               text_color: 0xF8FAFC
 
-
-          # --- Buzz arc  ---
+          # ── Buzz arc ─────────────────────────────────────────
           - arc:
               id: arc_buzz
               x: 10
@@ -761,7 +510,7 @@ lvgl:
               y: 260
               width: 80
               text: "-- %"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0xF8FAFC
               text_align: center
           - label:
@@ -769,11 +518,11 @@ lvgl:
               y: 274
               width: 80
               text: "Buzz"
-              text_font: montserrat_14
+              text_font: montserrat_14_de
               text_color: 0x94A3B8
               text_align: center
 
-
+          # ── Wärmepumpe / Warmwasser ──────────────────────────
           - label:
               x: 120
               y: 235
@@ -781,14 +530,15 @@ lvgl:
               text_align: center
               text: "Wärmepumpe"
               text_font: montserrat_14_de
-              text_color: 0xFF0000
+              text_color: 0xFB923C
           - label:
               id: val_wp
               x: 120
               y: 255
               width: 115
               text_align: center
-              text: "0 kW"
+              text: "0.0 kW"
+              text_font: montserrat_20_de
               text_color: 0xF8FAFC
           - label:
               id: val_wp_zyklen
@@ -799,7 +549,6 @@ lvgl:
               text: "-x heute"
               text_font: montserrat_14_de
               text_color: 0xF8FAFC
-
           - label:
               x: 235
               y: 235
@@ -807,16 +556,16 @@ lvgl:
               text_align: center
               text: "Warmwasser"
               text_font: montserrat_14_de
-              text_color: 0xFF0000
+              text_color: 0xFB923C
           - label:
               id: val_wasser
               x: 235
               y: 255
               width: 115
               text_align: center
-              text: "0 °C"
+              text: "0.0 °C"
+              text_font: montserrat_20_de
               text_color: 0xF8FAFC
-
           - label:
               id: val_wp_ruecklauf
               x: 235
@@ -826,3 +575,416 @@ lvgl:
               text: "Rücklauf"
               text_font: montserrat_14_de
               text_color: 0xF8FAFC
+
+          # ── Wires and arrow heads ────────────────────────────
+          # Drawn after the house so the arrows land on top of it.
+          # PV -> Akku
+          - line:
+              id: line_pv_akku
+              points:
+                - 50, 55
+                - 50, 110
+              line_color: 0x5C7300
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: head_pv_akku
+              points:
+                - 44, 102
+                - 50, 110
+                - 56, 102
+              line_color: 0xCCFF00
+              line_width: 4
+              line_rounded: true
+              hidden: true
+          # PV -> Einspeisung
+          - line:
+              id: line_pv_einspeisung
+              points:
+                - 88, 20
+                - 128, 20
+              line_color: 0x5C7300
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: head_pv_einspeisung
+              points:
+                - 120, 14
+                - 128, 20
+                - 120, 26
+              line_color: 0xCCFF00
+              line_width: 4
+              line_rounded: true
+              hidden: true
+          # PV -> Haus (tip sits on the roof)
+          - line:
+              id: line_pv_haus
+              points:
+                - 88, 55
+                - 154, 102
+              line_color: 0x5C7300
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: head_pv_haus
+              points:
+                - 143, 100
+                - 154, 102
+                - 149, 92
+              line_color: 0xCCFF00
+              line_width: 4
+              line_rounded: true
+              hidden: true
+          # Netz -> Haus
+          - line:
+              id: line_netz_haus
+              points:
+                - 292, 55
+                - 199, 100
+              line_color: 0x7A3A3A
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: head_netz_haus
+              points:
+                - 206, 91
+                - 199, 100
+                - 210, 100
+              line_color: 0xF87171
+              line_width: 4
+              line_rounded: true
+              hidden: true
+          # Akku -> Haus
+          - line:
+              id: line_akku_haus
+              points:
+                - 90, 155
+                - 115, 155
+              line_color: 0x246F40
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: head_akku_haus
+              points:
+                - 107, 149
+                - 115, 155
+                - 107, 161
+              line_color: 0x4ADE80
+              line_width: 4
+              line_rounded: true
+              hidden: true
+          # Haus -> Wärmepumpe
+          - line:
+              id: line_haus_wp
+              points:
+                - 177, 186
+                - 177, 233
+              line_color: 0x7C4A1D
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: head_haus_wp
+              points:
+                - 171, 225
+                - 177, 233
+                - 183, 225
+              line_color: 0xFB923C
+              line_width: 4
+              line_rounded: true
+              hidden: true
+          # Haus -> Buzz
+          - line:
+              id: line_haus_buzz
+              points:
+                - 120, 186
+                - 90, 235
+              line_color: 0x1C5E7C
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: head_haus_buzz
+              points:
+                - 91, 224
+                - 90, 235
+                - 99, 229
+              line_color: 0x38BDF8
+              line_width: 4
+              line_rounded: true
+              hidden: true
+
+          # ── Pulses ───────────────────────────────────────────
+          # Position and opacity are driven by the 50 ms interval, the
+          # coordinates below are only the starting point after boot.
+          - obj:
+              id: dot_pv_akku_0
+              x: 45
+              y: 50
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xCCFF00
+              bg_opa: 100%
+              shadow_color: 0xCCFF00
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_pv_akku_1
+              x: 45
+              y: 68
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xCCFF00
+              bg_opa: 100%
+              shadow_color: 0xCCFF00
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_pv_akku_2
+              x: 45
+              y: 86
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xCCFF00
+              bg_opa: 100%
+              shadow_color: 0xCCFF00
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_pv_einsp_0
+              x: 83
+              y: 15
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xCCFF00
+              bg_opa: 100%
+              shadow_color: 0xCCFF00
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_pv_einsp_1
+              x: 103
+              y: 15
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xCCFF00
+              bg_opa: 100%
+              shadow_color: 0xCCFF00
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_pv_haus_0
+              x: 83
+              y: 50
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xCCFF00
+              bg_opa: 100%
+              shadow_color: 0xCCFF00
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_pv_haus_1
+              x: 105
+              y: 66
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xCCFF00
+              bg_opa: 100%
+              shadow_color: 0xCCFF00
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_pv_haus_2
+              x: 127
+              y: 82
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xCCFF00
+              bg_opa: 100%
+              shadow_color: 0xCCFF00
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_netz_haus_0
+              x: 287
+              y: 50
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xF87171
+              bg_opa: 100%
+              shadow_color: 0xF87171
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_netz_haus_1
+              x: 264
+              y: 61
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xF87171
+              bg_opa: 100%
+              shadow_color: 0xF87171
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_netz_haus_2
+              x: 240
+              y: 72
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xF87171
+              bg_opa: 100%
+              shadow_color: 0xF87171
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_netz_haus_3
+              x: 217
+              y: 83
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xF87171
+              bg_opa: 100%
+              shadow_color: 0xF87171
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_akku_haus_0
+              x: 85
+              y: 150
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0x4ADE80
+              bg_opa: 100%
+              shadow_color: 0x4ADE80
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_akku_haus_1
+              x: 98
+              y: 150
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0x4ADE80
+              bg_opa: 100%
+              shadow_color: 0x4ADE80
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_haus_wp_0
+              x: 172
+              y: 181
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xFB923C
+              bg_opa: 100%
+              shadow_color: 0xFB923C
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_haus_wp_1
+              x: 172
+              y: 205
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0xFB923C
+              bg_opa: 100%
+              shadow_color: 0xFB923C
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_0
+              x: 115
+              y: 181
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0x38BDF8
+              bg_opa: 100%
+              shadow_color: 0x38BDF8
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_1
+              x: 105
+              y: 197
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0x38BDF8
+              bg_opa: 100%
+              shadow_color: 0x38BDF8
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_2
+              x: 95
+              y: 213
+              width: 10
+              height: 10
+              radius: 20
+              border_width: 0
+              bg_color: 0x38BDF8
+              bg_opa: 100%
+              shadow_color: 0x38BDF8
+              shadow_width: 12
+              shadow_opa: 60%
+              hidden: true
