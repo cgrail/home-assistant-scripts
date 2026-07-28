@@ -1,13 +1,19 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Live panel — energy flow diagram with animated "electrons"
+# Live panel — energy flow diagram
 #
-# Every connection is built from three kinds of widgets:
-#   line_<flow>    the wire (dimmed colour, width scales with the power)
-#   head_<flow>    the arrow head at the destination (bright colour)
-#   dot_<flow>_N   glowing pulses that travel along the wire
+# Layout (panel local coordinates, 375 x 320):
+#   y   6 …  52   header row: PV | Einspeisung | Netzbezug (icon + value)
+#   y 108 … 188   Akku arc | Haus node | "ohne WP" card
+#   y 228 … 312   Buzz arc | Wärmepumpe card | Warmwasser card
+#
+# Every connection is built from two kinds of widgets:
+#   line_<flow>    the wire, in a heavily dimmed version of the flow colour
+#   dot_<flow>_Nx  the comets: a glowing head (a) with two shrinking tail
+#                  dots (b, c) that travel along the wire and show the
+#                  direction of the flow
 #
 # The sensors only normalise their value to kW and store it in a global.
-# Visibility, wire width and pulse speed are derived centrally in the 50 ms
+# Visibility, wire width and comet speed are derived centrally in the 50 ms
 # interval below, so a flow is never inconsistent with the numbers next to it.
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -184,7 +190,7 @@ sensor:
             - lvgl.label.update:
                 id: val_wp_zyklen
                 text:
-                  format: "Heute: %.0f Starts"
+                  format: "%.0f Starts"
                   args: [x]
 
   - platform: homeassistant
@@ -233,16 +239,22 @@ interval:
             id(wp_kw),       // 5  Haus -> Wärmepumpe
             id(buzz_kw),     // 6  Haus -> Buzz
           };
-          // Start point, arrow tip and number of pulses of each wire.
-          static const struct { int16_t x0, y0, x1, y1; uint8_t pulses; } PATH[7] = {
-            { 50,  55,  50, 110, 3},
-            { 88,  20, 128,  20, 2},
-            { 88,  55, 154, 102, 3},
-            {292,  55, 199, 100, 4},
-            { 90, 155, 115, 155, 2},
-            {177, 186, 177, 233, 2},
-            {120, 186,  90, 235, 3},
+          // Wire start, wire end and the number of comets on the wire.
+          static const struct { int16_t x0, y0, x1, y1; uint8_t comets; } PATH[7] = {
+            { 48,  54,  48, 104, 1},
+            {102,  18, 128,  18, 1},
+            { 96,  54, 147, 104, 2},
+            {309,  54, 228, 104, 2},
+            { 92, 148, 126, 148, 1},
+            {187, 186, 187, 224, 1},
+            {150, 186,  88, 226, 2},
           };
+          // Distance behind the comet head, brightness and radius of the
+          // three dots that make up one comet.
+          static const float TAIL_PX[3] = {0.0f, 7.0f, 12.0f};
+          static const float TAIL_OPA[3] = {1.0f, 0.55f, 0.30f};
+          static const int TAIL_HALF[3] = {5, 4, 3};
+
           lv_obj_t *wire[7] = {
             id(line_pv_akku)->obj,
             id(line_pv_einspeisung)->obj,
@@ -252,26 +264,20 @@ interval:
             id(line_haus_wp)->obj,
             id(line_haus_buzz)->obj,
           };
-          lv_obj_t *head[7] = {
-            id(head_pv_akku)->obj,
-            id(head_pv_einspeisung)->obj,
-            id(head_pv_haus)->obj,
-            id(head_netz_haus)->obj,
-            id(head_akku_haus)->obj,
-            id(head_haus_wp)->obj,
-            id(head_haus_buzz)->obj,
-          };
-          lv_obj_t *pulse[7][4] = {
-            {id(dot_pv_akku_0),   id(dot_pv_akku_1),   id(dot_pv_akku_2),   nullptr},
-            {id(dot_pv_einsp_0),  id(dot_pv_einsp_1),  nullptr,             nullptr},
-            {id(dot_pv_haus_0),   id(dot_pv_haus_1),   id(dot_pv_haus_2),   nullptr},
-            {id(dot_netz_haus_0), id(dot_netz_haus_1), id(dot_netz_haus_2), id(dot_netz_haus_3)},
-            {id(dot_akku_haus_0), id(dot_akku_haus_1), nullptr,             nullptr},
-            {id(dot_haus_wp_0),   id(dot_haus_wp_1),   nullptr,             nullptr},
-            {id(dot_haus_buzz_0), id(dot_haus_buzz_1), id(dot_haus_buzz_2), nullptr},
+          lv_obj_t *comet[7][2][3] = {
+            {{id(dot_pv_akku_0a),   id(dot_pv_akku_0b),   id(dot_pv_akku_0c)},   {}},
+            {{id(dot_pv_einsp_0a),  id(dot_pv_einsp_0b),  id(dot_pv_einsp_0c)},  {}},
+            {{id(dot_pv_haus_0a),   id(dot_pv_haus_0b),   id(dot_pv_haus_0c)},
+             {id(dot_pv_haus_1a),   id(dot_pv_haus_1b),   id(dot_pv_haus_1c)}},
+            {{id(dot_netz_haus_0a), id(dot_netz_haus_0b), id(dot_netz_haus_0c)},
+             {id(dot_netz_haus_1a), id(dot_netz_haus_1b), id(dot_netz_haus_1c)}},
+            {{id(dot_akku_haus_0a), id(dot_akku_haus_0b), id(dot_akku_haus_0c)}, {}},
+            {{id(dot_haus_wp_0a),   id(dot_haus_wp_0b),   id(dot_haus_wp_0c)},   {}},
+            {{id(dot_haus_buzz_0a), id(dot_haus_buzz_0b), id(dot_haus_buzz_0c)},
+             {id(dot_haus_buzz_1a), id(dot_haus_buzz_1b), id(dot_haus_buzz_1c)}},
           };
           const lv_style_selector_t sel = (lv_style_selector_t) LV_PART_MAIN | (lv_style_selector_t) LV_STATE_DEFAULT;
-          // Animation position (0…1) of the pulses on each wire, and the wire
+          // Animation position (0…1) of the comets on each wire, and the wire
           // width that is currently applied.
           static float flow_phase[7] = {};
           static int last_width[7] = {};
@@ -282,19 +288,18 @@ interval:
             if (active == lv_obj_has_flag(wire[f], LV_OBJ_FLAG_HIDDEN)) {
               if (active) {
                 lv_obj_clear_flag(wire[f], LV_OBJ_FLAG_HIDDEN);
-                lv_obj_clear_flag(head[f], LV_OBJ_FLAG_HIDDEN);
               } else {
                 lv_obj_add_flag(wire[f], LV_OBJ_FLAG_HIDDEN);
-                lv_obj_add_flag(head[f], LV_OBJ_FLAG_HIDDEN);
-                for (int i = 0; i < PATH[f].pulses; i++)
-                  lv_obj_add_flag(pulse[f][i], LV_OBJ_FLAG_HIDDEN);
+                for (int c = 0; c < PATH[f].comets; c++)
+                  for (int k = 0; k < 3; k++)
+                    lv_obj_add_flag(comet[f][c][k], LV_OBJ_FLAG_HIDDEN);
               }
             }
             if (!active)
               continue;
 
-            // 2 px wire at idle, 6 px from 4 kW upwards.
-            const int width = 2 + (int) (std::min(flow_kw[f], 4.0f) + 0.5f);
+            // 2 px wire at idle, 4 px from 4 kW upwards.
+            const int width = 2 + (int) (std::min(flow_kw[f], 4.0f) / 2.0f + 0.5f);
             if (width != last_width[f]) {
               lv_obj_set_style_line_width(wire[f], width, sel);
               last_width[f] = width;
@@ -303,37 +308,81 @@ interval:
             const float dx = PATH[f].x1 - PATH[f].x0;
             const float dy = PATH[f].y1 - PATH[f].y0;
             const float len = sqrtf(dx * dx + dy * dy);
-            // Pulses crawl at 18 px/s and speed up to ~88 px/s at 5 kW.
-            const float speed = 18.0f + 14.0f * std::min(flow_kw[f], 5.0f);
+            // Comets crawl at 16 px/s and speed up to ~86 px/s at 5 kW.
+            const float speed = 16.0f + 14.0f * std::min(flow_kw[f], 5.0f);
             float phase = flow_phase[f] + speed * 0.05f / len;
             if (phase >= 1.0f)
               phase -= 1.0f;
             flow_phase[f] = phase;
 
-            for (int i = 0; i < PATH[f].pulses; i++) {
-              lv_obj_t *p = pulse[f][i];
-              float t = phase + (float) i / PATH[f].pulses;
-              if (t >= 1.0f)
-                t -= 1.0f;
-              lv_obj_set_pos(p, (int) (PATH[f].x0 + dx * t + 0.5f) - 5,
-                                (int) (PATH[f].y0 + dy * t + 0.5f) - 5);
-              // Fade in at the source and out again at the arrow head.
-              const float fade = t < 0.2f ? t / 0.2f : (t > 0.8f ? (1.0f - t) / 0.2f : 1.0f);
-              lv_obj_set_style_bg_opa(p, (lv_opa_t) (255.0f * fade), sel);
-              lv_obj_set_style_shadow_opa(p, (lv_opa_t) (150.0f * fade), sel);
-              if (lv_obj_has_flag(p, LV_OBJ_FLAG_HIDDEN))
-                lv_obj_clear_flag(p, LV_OBJ_FLAG_HIDDEN);
+            for (int c = 0; c < PATH[f].comets; c++) {
+              float base = phase + (float) c / PATH[f].comets;
+              if (base >= 1.0f)
+                base -= 1.0f;
+              // Fade the whole comet in at the source and out at the destination.
+              const float fade = base < 0.12f ? base / 0.12f
+                                              : (base > 0.85f ? (1.0f - base) / 0.15f : 1.0f);
+              for (int k = 0; k < 3; k++) {
+                lv_obj_t *d = comet[f][c][k];
+                const float t = base - TAIL_PX[k] / len;
+                if (t < 0.0f) {  // tail dot has not left the source yet
+                  if (!lv_obj_has_flag(d, LV_OBJ_FLAG_HIDDEN))
+                    lv_obj_add_flag(d, LV_OBJ_FLAG_HIDDEN);
+                  continue;
+                }
+                lv_obj_set_pos(d, (int) (PATH[f].x0 + dx * t + 0.5f) - TAIL_HALF[k],
+                                  (int) (PATH[f].y0 + dy * t + 0.5f) - TAIL_HALF[k]);
+                lv_obj_set_style_bg_opa(d, (lv_opa_t) (255.0f * fade * TAIL_OPA[k]), sel);
+                if (k == 0)
+                  lv_obj_set_style_shadow_opa(d, (lv_opa_t) (170.0f * fade), sel);
+                if (lv_obj_has_flag(d, LV_OBJ_FLAG_HIDDEN))
+                  lv_obj_clear_flag(d, LV_OBJ_FLAG_HIDDEN);
+              }
             }
           }
 
 font:
   - file: "https://github.com/Templarian/MaterialDesign-Webfont/raw/master/fonts/materialdesignicons-webfont.ttf"
-    id: mdi_14
-    size: 14
+    id: mdi_20
+    size: 20
     glyphs:
-      - "\U000F0599"  # weather-sunny
+      - "\U000F0A72"  # solar-power
+      - "\U000F192C"  # transmission-tower-export
+      - "\U000F192D"  # transmission-tower-import
+      - "\U000F02DC"  # home
 
 lvgl:
+  # Shared look of the comet dots: one style per position in the comet and
+  # one per flow colour, combined per widget via "styles:".
+  style_definitions:
+    - id: comet_head
+      radius: 20
+      border_width: 0
+      shadow_width: 16
+      shadow_spread: 0
+    - id: comet_tail
+      radius: 20
+      border_width: 0
+      shadow_width: 0
+    - id: comet_pv
+      bg_color: 0xFBBF24
+      shadow_color: 0xF59E0B
+    - id: comet_export
+      bg_color: 0x4ADE80
+      shadow_color: 0x22C55E
+    - id: comet_grid
+      bg_color: 0xF87171
+      shadow_color: 0xEF4444
+    - id: comet_akku
+      bg_color: 0x22D3EE
+      shadow_color: 0x06B6D4
+    - id: comet_wp
+      bg_color: 0xFB923C
+      shadow_color: 0xF97316
+    - id: comet_buzz
+      bg_color: 0xA78BFA
+      shadow_color: 0x8B5CF6
+
   widgets:
     # ── TOP RIGHT: Live ──────────────────────────────────────
     - obj:
@@ -348,57 +397,108 @@ lvgl:
         pad_all: 0
         scrollable: false
         widgets:
-          # ── Header row: PV, Einspeisung, Netzbezug ───────────
+          # ── Header row ───────────────────────────────────────
           - label:
-              x: 30
-              y: 10
-              text: "\U000F0599"
-              text_font: mdi_14
+              x: 31
+              y: 8
+              text: "\U000F0A72"
+              text_font: mdi_20
               text_color: 0xFBBF24
           - label:
-              x: 46
-              y: 10
+              x: 55
+              y: 11
               text: "PV"
               text_font: montserrat_14_de
               text_color: 0xFBBF24
           - label:
               id: val_pv
-              x: 15
-              y: 30
-              width: 90
+              x: 8
+              y: 27
+              width: 92
               text_align: center
               text: "0.0 kW"
               text_font: montserrat_20_de
               text_color: 0xF8FAFC
           - label:
-              x: 120
-              y: 10
-              width: 115
-              text_align: center
+              x: 133
+              y: 8
+              text: "\U000F192C"
+              text_font: mdi_20
+              text_color: 0x4ADE80
+          - label:
+              x: 157
+              y: 11
               text: "Einspeisung"
               text_font: montserrat_14_de
               text_color: 0x4ADE80
           - label:
               id: val_eingespeist
-              x: 120
-              y: 30
-              width: 115
+              x: 135
+              y: 27
+              width: 110
               text_align: center
               text: "0.0 kW"
               text_font: montserrat_20_de
               text_color: 0xF8FAFC
           - label:
-              x: 235
-              y: 10
-              width: 115
-              text_align: center
+              x: 258
+              y: 8
+              text: "\U000F192D"
+              text_font: mdi_20
+              text_color: 0xF87171
+          - label:
+              x: 284
+              y: 11
               text: "Netzbezug"
               text_font: montserrat_14_de
               text_color: 0xF87171
           - label:
               id: val_netz
-              x: 235
-              y: 30
+              x: 253
+              y: 27
+              width: 112
+              text_align: center
+              text: "0.0 kW"
+              text_font: montserrat_20_de
+              text_color: 0xF8FAFC
+
+          # ── Haus node ────────────────────────────────────────
+          # Drawn first so the neighbouring cards clip its glow, not the
+          # other way round.
+          - obj:
+              x: 130
+              y: 108
+              width: 115
+              height: 76
+              radius: 14
+              bg_color: 0x102B45
+              border_width: 2
+              border_color: 0x38BDF8
+              shadow_color: 0x38BDF8
+              shadow_width: 14
+              shadow_opa: 35%
+              pad_all: 0
+              scrollable: false
+          - label:
+              x: 130
+              y: 113
+              width: 115
+              text_align: center
+              text: "\U000F02DC"
+              text_font: mdi_20
+              text_color: 0x38BDF8
+          - label:
+              x: 130
+              y: 135
+              width: 115
+              text_align: center
+              text: "Haus Gesamt"
+              text_font: montserrat_14_de
+              text_color: 0x38BDF8
+          - label:
+              id: val_gesamt
+              x: 130
+              y: 152
               width: 115
               text_align: center
               text: "0.0 kW"
@@ -408,8 +508,8 @@ lvgl:
           # ── Akku arc ─────────────────────────────────────────
           - arc:
               id: arc_akku
-              x: 10
-              y: 115
+              x: 8
+              y: 108
               width: 80
               height: 80
               value: 0
@@ -418,72 +518,51 @@ lvgl:
               arc_color: 0x1E293B
               arc_width: 12
               indicator:
-                arc_color: 0x4ADE80
+                arc_color: 0x22D3EE
                 arc_width: 12
           - label:
               id: val_akku
-              x: 10
-              y: 140
+              x: 8
+              y: 132
               width: 80
+              text_align: center
               text: "-- %"
               text_font: montserrat_14_de
               text_color: 0xF8FAFC
-              text_align: center
           - label:
-              x: 10
-              y: 154
+              x: 8
+              y: 148
               width: 80
+              text_align: center
               text: "Akku"
               text_font: montserrat_14_de
               text_color: 0x94A3B8
-              text_align: center
 
-          # ── House ────────────────────────────────────────────
+          # ── "ohne WP" card ───────────────────────────────────
           - obj:
-              x: 120
-              y: 120
-              width: 115
-              height: 60
-              radius: 0
-              border_width: 0
-              bg_color: 0x1E3A5F
-          - line:
-              points:
-                - 115, 125
-                - 177, 88
-                - 240, 125
-              line_color: 0x1E3A5F
-              line_width: 5
+              x: 253
+              y: 108
+              width: 112
+              height: 76
+              radius: 10
+              bg_color: 0x101A2C
+              border_width: 1
+              border_color: 0x22304A
+              pad_all: 0
+              scrollable: false
           - label:
-              x: 120
-              y: 130
-              width: 115
-              text_align: center
-              text: "Haus Gesamt"
-              text_font: montserrat_14_de
-              text_color: 0x38BDF8
-          - label:
-              id: val_gesamt
-              x: 120
-              y: 150
-              width: 115
-              text_align: center
-              text: "0.0 kW"
-              text_font: montserrat_20_de
-              text_color: 0xF8FAFC
-          - label:
-              x: 235
-              y: 130
-              width: 115
+              x: 253
+              y: 126
+              width: 112
               text_align: center
               text: "ohne WP"
               text_font: montserrat_14_de
               text_color: 0x94A3B8
           - label:
               id: val_hauswp
-              x: 235
-              y: 150
-              width: 115
+              x: 253
+              y: 144
+              width: 112
               text_align: center
               text: "0.0 kW"
               text_font: montserrat_20_de
@@ -492,8 +571,8 @@ lvgl:
           # ── Buzz arc ─────────────────────────────────────────
           - arc:
               id: arc_buzz
-              x: 10
-              y: 235
+              x: 8
+              y: 228
               width: 80
               height: 80
               value: 0
@@ -502,30 +581,41 @@ lvgl:
               arc_color: 0x1E293B
               arc_width: 12
               indicator:
-                arc_color: 0x38BDF8
+                arc_color: 0xA78BFA
                 arc_width: 12
           - label:
               id: val_buzz
-              x: 10
-              y: 260
+              x: 8
+              y: 252
               width: 80
+              text_align: center
               text: "-- %"
               text_font: montserrat_14_de
               text_color: 0xF8FAFC
-              text_align: center
           - label:
-              x: 10
-              y: 274
+              x: 8
+              y: 268
               width: 80
+              text_align: center
               text: "Buzz"
               text_font: montserrat_14_de
               text_color: 0x94A3B8
-              text_align: center
 
-          # ── Wärmepumpe / Warmwasser ──────────────────────────
+          # ── Wärmepumpe card ──────────────────────────────────
+          - obj:
+              x: 130
+              y: 228
+              width: 115
+              height: 84
+              radius: 10
+              bg_color: 0x101A2C
+              border_width: 1
+              border_color: 0x22304A
+              pad_all: 0
+              scrollable: false
           - label:
-              x: 120
-              y: 235
+              x: 130
+              y: 238
               width: 115
               text_align: center
               text: "Wärmepumpe"
@@ -533,8 +623,8 @@ lvgl:
               text_color: 0xFB923C
           - label:
               id: val_wp
-              x: 120
-              y: 255
+              x: 130
+              y: 256
               width: 115
               text_align: center
               text: "0.0 kW"
@@ -542,449 +632,300 @@ lvgl:
               text_color: 0xF8FAFC
           - label:
               id: val_wp_zyklen
-              x: 120
-              y: 275
+              x: 130
+              y: 284
               width: 115
               text_align: center
-              text: "-x heute"
+              text: "-- Starts"
               text_font: montserrat_14_de
-              text_color: 0xF8FAFC
+              text_color: 0x94A3B8
+
+          # ── Warmwasser card ──────────────────────────────────
+          - obj:
+              x: 253
+              y: 228
+              width: 112
+              height: 84
+              radius: 10
+              bg_color: 0x101A2C
+              border_width: 1
+              border_color: 0x22304A
+              pad_all: 0
+              scrollable: false
           - label:
-              x: 235
-              y: 235
-              width: 115
+              x: 253
+              y: 238
+              width: 112
               text_align: center
               text: "Warmwasser"
               text_font: montserrat_14_de
               text_color: 0xFB923C
           - label:
               id: val_wasser
-              x: 235
-              y: 255
-              width: 115
+              x: 253
+              y: 256
+              width: 112
               text_align: center
               text: "0.0 °C"
               text_font: montserrat_20_de
               text_color: 0xF8FAFC
           - label:
               id: val_wp_ruecklauf
-              x: 235
-              y: 275
-              width: 115
+              x: 253
+              y: 284
+              width: 112
               text_align: center
               text: "Rücklauf"
               text_font: montserrat_14_de
-              text_color: 0xF8FAFC
+              text_color: 0x94A3B8
 
-          # ── Wires and arrow heads ────────────────────────────
-          # Drawn after the house so the arrows land on top of it.
-          # PV -> Akku
+          # ── Wires ────────────────────────────────────────────
+          # The direction of a flow is shown by the comets travelling along
+          # the wire, so the wires themselves stay plain.
           - line:
               id: line_pv_akku
               points:
-                - 50, 55
-                - 50, 110
-              line_color: 0x5C7300
+                - 48, 54
+                - 48, 104
+              line_color: 0x4A3A0C
               line_width: 2
               line_rounded: true
               hidden: true
-          - line:
-              id: head_pv_akku
-              points:
-                - 44, 102
-                - 50, 110
-                - 56, 102
-              line_color: 0xCCFF00
-              line_width: 4
-              line_rounded: true
-              hidden: true
-          # PV -> Einspeisung
           - line:
               id: line_pv_einspeisung
               points:
-                - 88, 20
-                - 128, 20
-              line_color: 0x5C7300
+                - 102, 18
+                - 128, 18
+              line_color: 0x17452C
               line_width: 2
               line_rounded: true
               hidden: true
-          - line:
-              id: head_pv_einspeisung
-              points:
-                - 120, 14
-                - 128, 20
-                - 120, 26
-              line_color: 0xCCFF00
-              line_width: 4
-              line_rounded: true
-              hidden: true
-          # PV -> Haus (tip sits on the roof)
           - line:
               id: line_pv_haus
               points:
-                - 88, 55
-                - 154, 102
-              line_color: 0x5C7300
+                - 96, 54
+                - 147, 104
+              line_color: 0x4A3A0C
               line_width: 2
               line_rounded: true
               hidden: true
-          - line:
-              id: head_pv_haus
-              points:
-                - 143, 100
-                - 154, 102
-                - 149, 92
-              line_color: 0xCCFF00
-              line_width: 4
-              line_rounded: true
-              hidden: true
-          # Netz -> Haus
           - line:
               id: line_netz_haus
               points:
-                - 292, 55
-                - 199, 100
-              line_color: 0x7A3A3A
+                - 309, 54
+                - 228, 104
+              line_color: 0x4A2222
               line_width: 2
               line_rounded: true
               hidden: true
-          - line:
-              id: head_netz_haus
-              points:
-                - 206, 91
-                - 199, 100
-                - 210, 100
-              line_color: 0xF87171
-              line_width: 4
-              line_rounded: true
-              hidden: true
-          # Akku -> Haus
           - line:
               id: line_akku_haus
               points:
-                - 90, 155
-                - 115, 155
-              line_color: 0x246F40
+                - 92, 148
+                - 126, 148
+              line_color: 0x0B4152
               line_width: 2
               line_rounded: true
               hidden: true
-          - line:
-              id: head_akku_haus
-              points:
-                - 107, 149
-                - 115, 155
-                - 107, 161
-              line_color: 0x4ADE80
-              line_width: 4
-              line_rounded: true
-              hidden: true
-          # Haus -> Wärmepumpe
           - line:
               id: line_haus_wp
               points:
-                - 177, 186
-                - 177, 233
-              line_color: 0x7C4A1D
+                - 187, 186
+                - 187, 224
+              line_color: 0x4A2C11
               line_width: 2
               line_rounded: true
               hidden: true
-          - line:
-              id: head_haus_wp
-              points:
-                - 171, 225
-                - 177, 233
-                - 183, 225
-              line_color: 0xFB923C
-              line_width: 4
-              line_rounded: true
-              hidden: true
-          # Haus -> Buzz
           - line:
               id: line_haus_buzz
               points:
-                - 120, 186
-                - 90, 235
-              line_color: 0x1C5E7C
+                - 150, 186
+                - 88, 226
+              line_color: 0x322A4D
               line_width: 2
               line_rounded: true
               hidden: true
-          - line:
-              id: head_haus_buzz
-              points:
-                - 91, 224
-                - 90, 235
-                - 99, 229
-              line_color: 0x38BDF8
-              line_width: 4
-              line_rounded: true
-              hidden: true
 
-          # ── Pulses ───────────────────────────────────────────
-          # Position and opacity are driven by the 50 ms interval, the
-          # coordinates below are only the starting point after boot.
+          # ── Comets ───────────────────────────────────────────
+          # Position and opacity come from the 50 ms interval; only the size
+          # and the colour are configured here.
           - obj:
-              id: dot_pv_akku_0
-              x: 45
-              y: 50
+              id: dot_pv_akku_0a
               width: 10
               height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xCCFF00
-              bg_opa: 100%
-              shadow_color: 0xCCFF00
-              shadow_width: 12
-              shadow_opa: 60%
+              styles: [comet_head, comet_pv]
               hidden: true
           - obj:
-              id: dot_pv_akku_1
-              x: 45
-              y: 68
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xCCFF00
-              bg_opa: 100%
-              shadow_color: 0xCCFF00
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_pv_akku_0b
+              width: 8
+              height: 8
+              styles: [comet_tail, comet_pv]
               hidden: true
           - obj:
-              id: dot_pv_akku_2
-              x: 45
-              y: 86
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xCCFF00
-              bg_opa: 100%
-              shadow_color: 0xCCFF00
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_pv_akku_0c
+              width: 6
+              height: 6
+              styles: [comet_tail, comet_pv]
               hidden: true
           - obj:
-              id: dot_pv_einsp_0
-              x: 83
-              y: 15
+              id: dot_pv_einsp_0a
               width: 10
               height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xCCFF00
-              bg_opa: 100%
-              shadow_color: 0xCCFF00
-              shadow_width: 12
-              shadow_opa: 60%
+              styles: [comet_head, comet_export]
               hidden: true
           - obj:
-              id: dot_pv_einsp_1
-              x: 103
-              y: 15
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xCCFF00
-              bg_opa: 100%
-              shadow_color: 0xCCFF00
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_pv_einsp_0b
+              width: 8
+              height: 8
+              styles: [comet_tail, comet_export]
               hidden: true
           - obj:
-              id: dot_pv_haus_0
-              x: 83
-              y: 50
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xCCFF00
-              bg_opa: 100%
-              shadow_color: 0xCCFF00
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_pv_einsp_0c
+              width: 6
+              height: 6
+              styles: [comet_tail, comet_export]
               hidden: true
           - obj:
-              id: dot_pv_haus_1
-              x: 105
-              y: 66
+              id: dot_pv_haus_0a
               width: 10
               height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xCCFF00
-              bg_opa: 100%
-              shadow_color: 0xCCFF00
-              shadow_width: 12
-              shadow_opa: 60%
+              styles: [comet_head, comet_pv]
               hidden: true
           - obj:
-              id: dot_pv_haus_2
-              x: 127
-              y: 82
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xCCFF00
-              bg_opa: 100%
-              shadow_color: 0xCCFF00
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_pv_haus_0b
+              width: 8
+              height: 8
+              styles: [comet_tail, comet_pv]
               hidden: true
           - obj:
-              id: dot_netz_haus_0
-              x: 287
-              y: 50
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xF87171
-              bg_opa: 100%
-              shadow_color: 0xF87171
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_pv_haus_0c
+              width: 6
+              height: 6
+              styles: [comet_tail, comet_pv]
               hidden: true
           - obj:
-              id: dot_netz_haus_1
-              x: 264
-              y: 61
+              id: dot_pv_haus_1a
               width: 10
               height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xF87171
-              bg_opa: 100%
-              shadow_color: 0xF87171
-              shadow_width: 12
-              shadow_opa: 60%
+              styles: [comet_head, comet_pv]
               hidden: true
           - obj:
-              id: dot_netz_haus_2
-              x: 240
-              y: 72
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xF87171
-              bg_opa: 100%
-              shadow_color: 0xF87171
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_pv_haus_1b
+              width: 8
+              height: 8
+              styles: [comet_tail, comet_pv]
               hidden: true
           - obj:
-              id: dot_netz_haus_3
-              x: 217
-              y: 83
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xF87171
-              bg_opa: 100%
-              shadow_color: 0xF87171
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_pv_haus_1c
+              width: 6
+              height: 6
+              styles: [comet_tail, comet_pv]
               hidden: true
           - obj:
-              id: dot_akku_haus_0
-              x: 85
-              y: 150
+              id: dot_netz_haus_0a
               width: 10
               height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0x4ADE80
-              bg_opa: 100%
-              shadow_color: 0x4ADE80
-              shadow_width: 12
-              shadow_opa: 60%
+              styles: [comet_head, comet_grid]
               hidden: true
           - obj:
-              id: dot_akku_haus_1
-              x: 98
-              y: 150
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0x4ADE80
-              bg_opa: 100%
-              shadow_color: 0x4ADE80
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_netz_haus_0b
+              width: 8
+              height: 8
+              styles: [comet_tail, comet_grid]
               hidden: true
           - obj:
-              id: dot_haus_wp_0
-              x: 172
-              y: 181
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xFB923C
-              bg_opa: 100%
-              shadow_color: 0xFB923C
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_netz_haus_0c
+              width: 6
+              height: 6
+              styles: [comet_tail, comet_grid]
               hidden: true
           - obj:
-              id: dot_haus_wp_1
-              x: 172
-              y: 205
+              id: dot_netz_haus_1a
               width: 10
               height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0xFB923C
-              bg_opa: 100%
-              shadow_color: 0xFB923C
-              shadow_width: 12
-              shadow_opa: 60%
+              styles: [comet_head, comet_grid]
               hidden: true
           - obj:
-              id: dot_haus_buzz_0
-              x: 115
-              y: 181
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0x38BDF8
-              bg_opa: 100%
-              shadow_color: 0x38BDF8
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_netz_haus_1b
+              width: 8
+              height: 8
+              styles: [comet_tail, comet_grid]
               hidden: true
           - obj:
-              id: dot_haus_buzz_1
-              x: 105
-              y: 197
-              width: 10
-              height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0x38BDF8
-              bg_opa: 100%
-              shadow_color: 0x38BDF8
-              shadow_width: 12
-              shadow_opa: 60%
+              id: dot_netz_haus_1c
+              width: 6
+              height: 6
+              styles: [comet_tail, comet_grid]
               hidden: true
           - obj:
-              id: dot_haus_buzz_2
-              x: 95
-              y: 213
+              id: dot_akku_haus_0a
               width: 10
               height: 10
-              radius: 20
-              border_width: 0
-              bg_color: 0x38BDF8
-              bg_opa: 100%
-              shadow_color: 0x38BDF8
-              shadow_width: 12
-              shadow_opa: 60%
+              styles: [comet_head, comet_akku]
+              hidden: true
+          - obj:
+              id: dot_akku_haus_0b
+              width: 8
+              height: 8
+              styles: [comet_tail, comet_akku]
+              hidden: true
+          - obj:
+              id: dot_akku_haus_0c
+              width: 6
+              height: 6
+              styles: [comet_tail, comet_akku]
+              hidden: true
+          - obj:
+              id: dot_haus_wp_0a
+              width: 10
+              height: 10
+              styles: [comet_head, comet_wp]
+              hidden: true
+          - obj:
+              id: dot_haus_wp_0b
+              width: 8
+              height: 8
+              styles: [comet_tail, comet_wp]
+              hidden: true
+          - obj:
+              id: dot_haus_wp_0c
+              width: 6
+              height: 6
+              styles: [comet_tail, comet_wp]
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_0a
+              width: 10
+              height: 10
+              styles: [comet_head, comet_buzz]
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_0b
+              width: 8
+              height: 8
+              styles: [comet_tail, comet_buzz]
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_0c
+              width: 6
+              height: 6
+              styles: [comet_tail, comet_buzz]
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_1a
+              width: 10
+              height: 10
+              styles: [comet_head, comet_buzz]
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_1b
+              width: 8
+              height: 8
+              styles: [comet_tail, comet_buzz]
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_1c
+              width: 6
+              height: 6
+              styles: [comet_tail, comet_buzz]
               hidden: true
