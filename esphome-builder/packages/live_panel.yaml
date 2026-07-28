@@ -8,12 +8,11 @@
 #
 # Every connection is built from two kinds of widgets:
 #   line_<flow>    the wire, in a heavily dimmed version of the flow colour
-#   dot_<flow>_Nx  the comets: a glowing head (a) with two shrinking tail
-#                  dots (b, c) that travel along the wire and show the
-#                  direction of the flow
+#   dot_<flow>_N   the pulses: glowing dots that travel along the wire and
+#                  show the direction of the flow
 #
 # The sensors only normalise their value to kW and store it in a global.
-# Visibility, wire width and comet speed are derived centrally in the 50 ms
+# Visibility, wire width and pulse speed are derived centrally in the 50 ms
 # interval below, so a flow is never inconsistent with the numbers next to it.
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -239,45 +238,28 @@ interval:
             id(wp_kw),       // 5  Haus -> Wärmepumpe
             id(buzz_kw),     // 6  Haus -> Buzz
           };
-          // Wire start, wire end and the number of comets on the wire.
-          static const struct { int16_t x0, y0, x1, y1; uint8_t comets; } PATH[7] = {
-            { 48,  54,  48, 104, 1},
+          // Start, end and the number of pulses on each path. The pulse count
+          // keeps them roughly 25 px apart on every path.
+          static const struct { int16_t x0, y0, x1, y1; uint8_t dots; } PATH[7] = {
+            { 48,  54,  48, 104, 2},
             {102,  18, 128,  18, 1},
-            { 96,  54, 147, 104, 2},
-            {309,  54, 228, 104, 2},
+            { 96,  54, 147, 104, 3},
+            {309,  54, 228, 104, 4},
             { 92, 148, 126, 148, 1},
             {187, 186, 187, 224, 1},
-            {150, 186,  88, 226, 2},
+            {150, 186,  88, 226, 3},
           };
-          // Distance behind the comet head, brightness and radius of the
-          // three dots that make up one comet.
-          static const float TAIL_PX[3] = {0.0f, 7.0f, 12.0f};
-          static const float TAIL_OPA[3] = {1.0f, 0.55f, 0.30f};
-          static const int TAIL_HALF[3] = {5, 4, 3};
-
-          lv_obj_t *wire[7] = {
-            id(line_pv_akku)->obj,
-            id(line_pv_einspeisung)->obj,
-            id(line_pv_haus)->obj,
-            id(line_netz_haus)->obj,
-            id(line_akku_haus)->obj,
-            id(line_haus_wp)->obj,
-            id(line_haus_buzz)->obj,
-          };
-          lv_obj_t *comet[7][2][3] = {
-            {{id(dot_pv_akku_0a),   id(dot_pv_akku_0b),   id(dot_pv_akku_0c)},   {}},
-            {{id(dot_pv_einsp_0a),  id(dot_pv_einsp_0b),  id(dot_pv_einsp_0c)},  {}},
-            {{id(dot_pv_haus_0a),   id(dot_pv_haus_0b),   id(dot_pv_haus_0c)},
-             {id(dot_pv_haus_1a),   id(dot_pv_haus_1b),   id(dot_pv_haus_1c)}},
-            {{id(dot_netz_haus_0a), id(dot_netz_haus_0b), id(dot_netz_haus_0c)},
-             {id(dot_netz_haus_1a), id(dot_netz_haus_1b), id(dot_netz_haus_1c)}},
-            {{id(dot_akku_haus_0a), id(dot_akku_haus_0b), id(dot_akku_haus_0c)}, {}},
-            {{id(dot_haus_wp_0a),   id(dot_haus_wp_0b),   id(dot_haus_wp_0c)},   {}},
-            {{id(dot_haus_buzz_0a), id(dot_haus_buzz_0b), id(dot_haus_buzz_0c)},
-             {id(dot_haus_buzz_1a), id(dot_haus_buzz_1b), id(dot_haus_buzz_1c)}},
+          lv_obj_t *pulse[7][4] = {
+            {id(dot_pv_akku_0),   id(dot_pv_akku_1)},
+            {id(dot_pv_einsp_0)},
+            {id(dot_pv_haus_0),   id(dot_pv_haus_1),   id(dot_pv_haus_2)},
+            {id(dot_netz_haus_0), id(dot_netz_haus_1), id(dot_netz_haus_2), id(dot_netz_haus_3)},
+            {id(dot_akku_haus_0)},
+            {id(dot_haus_wp_0)},
+            {id(dot_haus_buzz_0), id(dot_haus_buzz_1), id(dot_haus_buzz_2)},
           };
           const lv_style_selector_t sel = (lv_style_selector_t) LV_PART_MAIN | (lv_style_selector_t) LV_STATE_DEFAULT;
-          // Animation position (0…1) of the comets on each wire, and the wire
+          // Animation position (0…1) of the pulses on each wire, and the wire
           // width that is currently applied.
           static float flow_phase[7] = {};
           static int last_width[7] = {};
@@ -290,9 +272,8 @@ interval:
                 lv_obj_clear_flag(wire[f], LV_OBJ_FLAG_HIDDEN);
               } else {
                 lv_obj_add_flag(wire[f], LV_OBJ_FLAG_HIDDEN);
-                for (int c = 0; c < PATH[f].comets; c++)
-                  for (int k = 0; k < 3; k++)
-                    lv_obj_add_flag(comet[f][c][k], LV_OBJ_FLAG_HIDDEN);
+                for (int k = 0; k < PATH[f].dots; k++)
+                  lv_obj_add_flag(pulse[f][k], LV_OBJ_FLAG_HIDDEN);
               }
             }
             if (!active)
@@ -308,36 +289,27 @@ interval:
             const float dx = PATH[f].x1 - PATH[f].x0;
             const float dy = PATH[f].y1 - PATH[f].y0;
             const float len = sqrtf(dx * dx + dy * dy);
-            // Comets crawl at 16 px/s and speed up to ~86 px/s at 5 kW.
+            // Pulses crawl at 16 px/s and speed up to ~86 px/s at 5 kW.
             const float speed = 16.0f + 14.0f * std::min(flow_kw[f], 5.0f);
             float phase = flow_phase[f] + speed * 0.05f / len;
             if (phase >= 1.0f)
               phase -= 1.0f;
             flow_phase[f] = phase;
 
-            for (int c = 0; c < PATH[f].comets; c++) {
-              float base = phase + (float) c / PATH[f].comets;
-              if (base >= 1.0f)
-                base -= 1.0f;
-              // Fade the whole comet in at the source and out at the destination.
-              const float fade = base < 0.12f ? base / 0.12f
-                                              : (base > 0.85f ? (1.0f - base) / 0.15f : 1.0f);
-              for (int k = 0; k < 3; k++) {
-                lv_obj_t *d = comet[f][c][k];
-                const float t = base - TAIL_PX[k] / len;
-                if (t < 0.0f) {  // tail dot has not left the source yet
-                  if (!lv_obj_has_flag(d, LV_OBJ_FLAG_HIDDEN))
-                    lv_obj_add_flag(d, LV_OBJ_FLAG_HIDDEN);
-                  continue;
-                }
-                lv_obj_set_pos(d, (int) (PATH[f].x0 + dx * t + 0.5f) - TAIL_HALF[k],
-                                  (int) (PATH[f].y0 + dy * t + 0.5f) - TAIL_HALF[k]);
-                lv_obj_set_style_bg_opa(d, (lv_opa_t) (255.0f * fade * TAIL_OPA[k]), sel);
-                if (k == 0)
-                  lv_obj_set_style_shadow_opa(d, (lv_opa_t) (170.0f * fade), sel);
-                if (lv_obj_has_flag(d, LV_OBJ_FLAG_HIDDEN))
-                  lv_obj_clear_flag(d, LV_OBJ_FLAG_HIDDEN);
-              }
+            for (int k = 0; k < PATH[f].dots; k++) {
+              lv_obj_t *d = pulse[f][k];
+              float t = phase + (float) k / PATH[f].dots;
+              if (t >= 1.0f)
+                t -= 1.0f;
+              lv_obj_set_pos(d, (int) (PATH[f].x0 + dx * t + 0.5f) - 5,
+                                (int) (PATH[f].y0 + dy * t + 0.5f) - 5);
+              // Fade in at the source and out again at the destination.
+              const float fade = t < 0.12f ? t / 0.12f
+                                           : (t > 0.85f ? (1.0f - t) / 0.15f : 1.0f);
+              lv_obj_set_style_bg_opa(d, (lv_opa_t) (255.0f * fade), sel);
+              lv_obj_set_style_shadow_opa(d, (lv_opa_t) (170.0f * fade), sel);
+              if (lv_obj_has_flag(d, LV_OBJ_FLAG_HIDDEN))
+                lv_obj_clear_flag(d, LV_OBJ_FLAG_HIDDEN);
             }
           }
 
@@ -352,34 +324,30 @@ font:
       - "\U000F02DC"  # home
 
 lvgl:
-  # Shared look of the comet dots: one style per position in the comet and
-  # one per flow colour, combined per widget via "styles:".
+  # Shared look of the pulses: the round glowing shape and one style per
+  # flow colour, combined per widget via "styles:".
   style_definitions:
-    - id: comet_head
+    - id: pulse_dot
       radius: 20
       border_width: 0
       shadow_width: 16
       shadow_spread: 0
-    - id: comet_tail
-      radius: 20
-      border_width: 0
-      shadow_width: 0
-    - id: comet_pv
+    - id: pulse_pv
       bg_color: 0xFBBF24
       shadow_color: 0xF59E0B
-    - id: comet_export
+    - id: pulse_export
       bg_color: 0x4ADE80
       shadow_color: 0x22C55E
-    - id: comet_grid
+    - id: pulse_grid
       bg_color: 0xF87171
       shadow_color: 0xEF4444
-    - id: comet_akku
+    - id: pulse_akku
       bg_color: 0x22D3EE
       shadow_color: 0x06B6D4
-    - id: comet_wp
+    - id: pulse_wp
       bg_color: 0xFB923C
       shadow_color: 0xF97316
-    - id: comet_buzz
+    - id: pulse_buzz
       bg_color: 0xA78BFA
       shadow_color: 0x8B5CF6
 
@@ -680,7 +648,7 @@ lvgl:
               text_color: 0x94A3B8
 
           # ── Wires ────────────────────────────────────────────
-          # The direction of a flow is shown by the comets travelling along
+          # The direction of a flow is shown by the pulses travelling along
           # the wire, so the wires themselves stay plain.
           - line:
               id: line_pv_akku
@@ -746,186 +714,96 @@ lvgl:
               line_rounded: true
               hidden: true
 
-          # ── Comets ───────────────────────────────────────────
-          # Position and opacity come from the 50 ms interval; only the size
-          # and the colour are configured here.
+          # ── Pulses ───────────────────────────────────────────
+          # Position and opacity come from the 50 ms interval; only the
+          # colour is configured here.
           - obj:
-              id: dot_pv_akku_0a
+              id: dot_pv_akku_0
               width: 10
               height: 10
-              styles: [comet_head, comet_pv]
+              styles: [pulse_dot, pulse_pv]
               hidden: true
           - obj:
-              id: dot_pv_akku_0b
-              width: 8
-              height: 8
-              styles: [comet_tail, comet_pv]
-              hidden: true
-          - obj:
-              id: dot_pv_akku_0c
-              width: 6
-              height: 6
-              styles: [comet_tail, comet_pv]
-              hidden: true
-          - obj:
-              id: dot_pv_einsp_0a
+              id: dot_pv_akku_1
               width: 10
               height: 10
-              styles: [comet_head, comet_export]
+              styles: [pulse_dot, pulse_pv]
               hidden: true
           - obj:
-              id: dot_pv_einsp_0b
-              width: 8
-              height: 8
-              styles: [comet_tail, comet_export]
-              hidden: true
-          - obj:
-              id: dot_pv_einsp_0c
-              width: 6
-              height: 6
-              styles: [comet_tail, comet_export]
-              hidden: true
-          - obj:
-              id: dot_pv_haus_0a
+              id: dot_pv_einsp_0
               width: 10
               height: 10
-              styles: [comet_head, comet_pv]
+              styles: [pulse_dot, pulse_export]
               hidden: true
           - obj:
-              id: dot_pv_haus_0b
-              width: 8
-              height: 8
-              styles: [comet_tail, comet_pv]
-              hidden: true
-          - obj:
-              id: dot_pv_haus_0c
-              width: 6
-              height: 6
-              styles: [comet_tail, comet_pv]
-              hidden: true
-          - obj:
-              id: dot_pv_haus_1a
+              id: dot_pv_haus_0
               width: 10
               height: 10
-              styles: [comet_head, comet_pv]
+              styles: [pulse_dot, pulse_pv]
               hidden: true
           - obj:
-              id: dot_pv_haus_1b
-              width: 8
-              height: 8
-              styles: [comet_tail, comet_pv]
-              hidden: true
-          - obj:
-              id: dot_pv_haus_1c
-              width: 6
-              height: 6
-              styles: [comet_tail, comet_pv]
-              hidden: true
-          - obj:
-              id: dot_netz_haus_0a
+              id: dot_pv_haus_1
               width: 10
               height: 10
-              styles: [comet_head, comet_grid]
+              styles: [pulse_dot, pulse_pv]
               hidden: true
           - obj:
-              id: dot_netz_haus_0b
-              width: 8
-              height: 8
-              styles: [comet_tail, comet_grid]
-              hidden: true
-          - obj:
-              id: dot_netz_haus_0c
-              width: 6
-              height: 6
-              styles: [comet_tail, comet_grid]
-              hidden: true
-          - obj:
-              id: dot_netz_haus_1a
+              id: dot_pv_haus_2
               width: 10
               height: 10
-              styles: [comet_head, comet_grid]
+              styles: [pulse_dot, pulse_pv]
               hidden: true
           - obj:
-              id: dot_netz_haus_1b
-              width: 8
-              height: 8
-              styles: [comet_tail, comet_grid]
-              hidden: true
-          - obj:
-              id: dot_netz_haus_1c
-              width: 6
-              height: 6
-              styles: [comet_tail, comet_grid]
-              hidden: true
-          - obj:
-              id: dot_akku_haus_0a
+              id: dot_netz_haus_0
               width: 10
               height: 10
-              styles: [comet_head, comet_akku]
+              styles: [pulse_dot, pulse_grid]
               hidden: true
           - obj:
-              id: dot_akku_haus_0b
-              width: 8
-              height: 8
-              styles: [comet_tail, comet_akku]
-              hidden: true
-          - obj:
-              id: dot_akku_haus_0c
-              width: 6
-              height: 6
-              styles: [comet_tail, comet_akku]
-              hidden: true
-          - obj:
-              id: dot_haus_wp_0a
+              id: dot_netz_haus_1
               width: 10
               height: 10
-              styles: [comet_head, comet_wp]
+              styles: [pulse_dot, pulse_grid]
               hidden: true
           - obj:
-              id: dot_haus_wp_0b
-              width: 8
-              height: 8
-              styles: [comet_tail, comet_wp]
-              hidden: true
-          - obj:
-              id: dot_haus_wp_0c
-              width: 6
-              height: 6
-              styles: [comet_tail, comet_wp]
-              hidden: true
-          - obj:
-              id: dot_haus_buzz_0a
+              id: dot_netz_haus_2
               width: 10
               height: 10
-              styles: [comet_head, comet_buzz]
+              styles: [pulse_dot, pulse_grid]
               hidden: true
           - obj:
-              id: dot_haus_buzz_0b
-              width: 8
-              height: 8
-              styles: [comet_tail, comet_buzz]
-              hidden: true
-          - obj:
-              id: dot_haus_buzz_0c
-              width: 6
-              height: 6
-              styles: [comet_tail, comet_buzz]
-              hidden: true
-          - obj:
-              id: dot_haus_buzz_1a
+              id: dot_netz_haus_3
               width: 10
               height: 10
-              styles: [comet_head, comet_buzz]
+              styles: [pulse_dot, pulse_grid]
               hidden: true
           - obj:
-              id: dot_haus_buzz_1b
-              width: 8
-              height: 8
-              styles: [comet_tail, comet_buzz]
+              id: dot_akku_haus_0
+              width: 10
+              height: 10
+              styles: [pulse_dot, pulse_akku]
               hidden: true
           - obj:
-              id: dot_haus_buzz_1c
-              width: 6
-              height: 6
-              styles: [comet_tail, comet_buzz]
+              id: dot_haus_wp_0
+              width: 10
+              height: 10
+              styles: [pulse_dot, pulse_wp]
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_0
+              width: 10
+              height: 10
+              styles: [pulse_dot, pulse_buzz]
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_1
+              width: 10
+              height: 10
+              styles: [pulse_dot, pulse_buzz]
+              hidden: true
+          - obj:
+              id: dot_haus_buzz_2
+              width: 10
+              height: 10
+              styles: [pulse_dot, pulse_buzz]
               hidden: true
