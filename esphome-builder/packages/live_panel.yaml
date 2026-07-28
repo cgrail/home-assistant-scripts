@@ -6,13 +6,14 @@
 #   y 108 … 188   Akku arc | Haus node | "ohne WP" card
 #   y 228 … 312   Buzz arc | Wärmepumpe card | Warmwasser card
 #
-# A connection is drawn by its pulses alone — there is no line underneath:
-#   dot_<flow>_N   glowing dots that travel from source to destination and
-#                  show both the existence and the direction of the flow
+# Every connection is built from two kinds of widgets:
+#   line_<flow>    the wire, in a heavily dimmed version of the flow colour
+#   dot_<flow>_N   glowing pulses that travel along the wire and show the
+#                  direction of the flow
 #
 # The sensors only normalise their value to kW and store it in a global.
-# Visibility and pulse speed are derived centrally in the 50 ms interval
-# below, so a flow is never inconsistent with the numbers next to it.
+# Visibility, wire width and pulse speed are derived centrally in the 50 ms
+# interval below, so a flow is never inconsistent with the numbers next to it.
 # ─────────────────────────────────────────────────────────────────────────────
 
 globals:
@@ -248,6 +249,15 @@ interval:
             {187, 186, 187, 224, 1},
             {150, 186,  88, 226, 3},
           };
+          lv_obj_t *wire[7] = {
+            id(line_pv_akku)->obj,
+            id(line_pv_einspeisung)->obj,
+            id(line_pv_haus)->obj,
+            id(line_netz_haus)->obj,
+            id(line_akku_haus)->obj,
+            id(line_haus_wp)->obj,
+            id(line_haus_buzz)->obj,
+          };
           lv_obj_t *pulse[7][4] = {
             {id(dot_pv_akku_0),   id(dot_pv_akku_1)},
             {id(dot_pv_einsp_0)},
@@ -258,23 +268,36 @@ interval:
             {id(dot_haus_buzz_0), id(dot_haus_buzz_1), id(dot_haus_buzz_2)},
           };
           const lv_style_selector_t sel = (lv_style_selector_t) LV_PART_MAIN | (lv_style_selector_t) LV_STATE_DEFAULT;
-          // Animation position (0…1) of the pulses on each path, and whether
-          // the flow was running on the previous tick.
+          // Animation position (0…1) of the pulses on each path, whether the
+          // flow was running on the previous tick, and the wire width that is
+          // currently applied.
           static float flow_phase[7] = {};
           static bool was_active[7] = {};
+          static int last_width[7] = {};
 
           for (int f = 0; f < 7; f++) {
             const bool active = flow_kw[f] > 0.05f;
             if (!active) {
-              // Park the pulses once, when the flow stops.
+              // Park wire and pulses once, when the flow stops.
               if (was_active[f]) {
+                lv_obj_add_flag(wire[f], LV_OBJ_FLAG_HIDDEN);
                 for (int k = 0; k < PATH[f].dots; k++)
                   lv_obj_add_flag(pulse[f][k], LV_OBJ_FLAG_HIDDEN);
                 was_active[f] = false;
               }
               continue;
             }
-            was_active[f] = true;
+            if (!was_active[f]) {
+              lv_obj_clear_flag(wire[f], LV_OBJ_FLAG_HIDDEN);
+              was_active[f] = true;
+            }
+
+            // 2 px wire at idle, 4 px from 4 kW upwards.
+            const int width = 2 + (int) (std::min(flow_kw[f], 4.0f) / 2.0f + 0.5f);
+            if (width != last_width[f]) {
+              lv_obj_set_style_line_width(wire[f], width, sel);
+              last_width[f] = width;
+            }
 
             const float dx = PATH[f].x1 - PATH[f].x0;
             const float dy = PATH[f].y1 - PATH[f].y0;
@@ -641,6 +664,74 @@ lvgl:
               text: "Rücklauf"
               text_font: montserrat_14_de
               text_color: 0x94A3B8
+
+          # ── Wires ────────────────────────────────────────────
+          # Declared before the pulses so the pulses are drawn on top of them.
+          # Colour is a heavily dimmed version of the flow colour; the width
+          # is scaled with the power in the interval below.
+          - line:
+              id: line_pv_akku
+              points:
+                - 48, 54
+                - 48, 104
+              line_color: 0x4A3A0C
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_pv_einspeisung
+              points:
+                - 102, 18
+                - 128, 18
+              line_color: 0x17452C
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_pv_haus
+              points:
+                - 96, 54
+                - 147, 104
+              line_color: 0x4A3A0C
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_netz_haus
+              points:
+                - 309, 54
+                - 228, 104
+              line_color: 0x4A2222
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_akku_haus
+              points:
+                - 92, 148
+                - 126, 148
+              line_color: 0x0B4152
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_haus_wp
+              points:
+                - 187, 186
+                - 187, 224
+              line_color: 0x4A2C11
+              line_width: 2
+              line_rounded: true
+              hidden: true
+          - line:
+              id: line_haus_buzz
+              points:
+                - 150, 186
+                - 88, 226
+              line_color: 0x322A4D
+              line_width: 2
+              line_rounded: true
+              hidden: true
 
           # ── Pulses ───────────────────────────────────────────
           # Position and opacity come from the 50 ms interval; only the
