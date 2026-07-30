@@ -14,6 +14,15 @@ esp32:
   board: esp32-s3-devkitc-1
   framework:
     type: esp-idf
+    advanced:
+      # Anti-Drift für das RGB-Panel: Code/rodata aus PSRAM ausführen,
+      # damit der Bounce-Buffer-ISR nie auf Flash-Cache-Misses wartet
+      execute_from_psram: true
+    sdkconfig_options:
+      CONFIG_LCD_RGB_ISR_IRAM_SAFE: y
+      # Mehr PSRAM-Durchsatz für Framebuffer + LVGL-Flushes
+      CONFIG_ESP32S3_DATA_CACHE_64KB: y
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: y
 
 psram:
   mode: octal
