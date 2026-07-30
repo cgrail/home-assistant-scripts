@@ -7,13 +7,14 @@
 #   y 228 … 312   Buzz arc | Wärmepumpe card | Warmwasser card
 #
 # Every connection is built from two kinds of widgets:
-#   line_<flow>    the wire, in a heavily dimmed version of the flow colour
-#   dot_<flow>_N   glowing pulses that travel along the wire and show the
-#                  direction of the flow
+#   line_<flow>     the wire, in a heavily dimmed version of the flow colour
+#   arrow_<flow>_N  chevrons that travel along the wire and show the
+#                   direction of the flow
 #
 # The sensors only normalise their value to kW and store it in a global.
-# Visibility, wire width and pulse speed are derived centrally in the 50 ms
-# interval below, so a flow is never inconsistent with the numbers next to it.
+# Visibility, wire width, arrow direction and arrow speed are derived centrally
+# in the 50 ms interval below, so a flow is never inconsistent with the numbers
+# next to it.
 # ─────────────────────────────────────────────────────────────────────────────
 
 globals:
@@ -238,9 +239,9 @@ interval:
             id(wp_kw),       // 5  Haus -> Wärmepumpe
             id(buzz_kw),     // 6  Haus -> Buzz
           };
-          // Start, end and the number of pulses on each path. The pulse count
+          // Start, end and the number of arrows on each path. The arrow count
           // keeps them roughly 25 px apart on every path.
-          static const struct { int16_t x0, y0, x1, y1; uint8_t dots; } PATH[7] = {
+          static const struct { int16_t x0, y0, x1, y1; uint8_t arrows; } PATH[7] = {
             { 48,  54,  48, 104, 2},
             {102,  18, 128,  18, 1},
             { 96,  54, 147, 104, 3},
@@ -258,31 +259,75 @@ interval:
             id(line_haus_wp)->obj,
             id(line_haus_buzz)->obj,
           };
-          lv_obj_t *pulse[7][4] = {
-            {id(dot_pv_akku_0),   id(dot_pv_akku_1)},
-            {id(dot_pv_einsp_0)},
-            {id(dot_pv_haus_0),   id(dot_pv_haus_1),   id(dot_pv_haus_2)},
-            {id(dot_netz_haus_0), id(dot_netz_haus_1), id(dot_netz_haus_2), id(dot_netz_haus_3)},
-            {id(dot_akku_haus_0)},
-            {id(dot_haus_wp_0)},
-            {id(dot_haus_buzz_0), id(dot_haus_buzz_1), id(dot_haus_buzz_2)},
+          lv_obj_t *arrow[7][4] = {
+            {id(arrow_pv_akku_0)->obj,   id(arrow_pv_akku_1)->obj},
+            {id(arrow_pv_einsp_0)->obj},
+            {id(arrow_pv_haus_0)->obj,   id(arrow_pv_haus_1)->obj,   id(arrow_pv_haus_2)->obj},
+            {id(arrow_netz_haus_0)->obj, id(arrow_netz_haus_1)->obj, id(arrow_netz_haus_2)->obj, id(arrow_netz_haus_3)->obj},
+            {id(arrow_akku_haus_0)->obj},
+            {id(arrow_haus_wp_0)->obj},
+            {id(arrow_haus_buzz_0)->obj, id(arrow_haus_buzz_1)->obj, id(arrow_haus_buzz_2)->obj},
           };
           const lv_style_selector_t sel = (lv_style_selector_t) LV_PART_MAIN | (lv_style_selector_t) LV_STATE_DEFAULT;
-          // Animation position (0…1) of the pulses on each path, whether the
+          // Animation position (0…1) of the arrows on each path, whether the
           // flow was running on the previous tick, and the wire width that is
           // currently applied.
           static float flow_phase[7] = {};
           static bool was_active[7] = {};
           static int last_width[7] = {};
 
+          // The arrow shape: a three point chevron "›", swept back from the
+          // tip and turned into the direction of its path. It is built once
+          // from the very same PATH table that moves the arrows, so an arrow
+          // can never point the wrong way down a wire. LVGL keeps the pointer
+          // to the point array instead of copying it — hence "static", and
+          // hence the placeholder points in the YAML below.
+          static lv_point_precise_t arrow_pts[7][3];
+          // The shift that moved the chevron into that box: added to a point
+          // on the wire it gives the widget position that puts the arrow there.
+          static float arrow_ofs_x[7], arrow_ofs_y[7];
+          static bool arrows_built = false;
+          if (!arrows_built) {
+            arrows_built = true;
+            const float COS_SWEEP = 0.766f;   // legs swept back by 40°
+            const float SIN_SWEEP = 0.643f;
+            const float LEG = 9.0f;           // length of one chevron leg
+            const float TIP = 4.5f;           // tip ahead of the path position
+            for (int f = 0; f < 7; f++) {
+              const float dx = PATH[f].x1 - PATH[f].x0;
+              const float dy = PATH[f].y1 - PATH[f].y0;
+              const float len = sqrtf(dx * dx + dy * dy);
+              const float ux = dx / len, uy = dy / len;
+              const float tx = ux * TIP, ty = uy * TIP;
+              // Tip in the middle, the two legs rotated by ±40° against the
+              // direction of travel.
+              const float px[3] = {tx - LEG * (ux * COS_SWEEP - uy * SIN_SWEEP), tx,
+                                   tx - LEG * (ux * COS_SWEEP + uy * SIN_SWEEP)};
+              const float py[3] = {ty - LEG * (ux * SIN_SWEEP + uy * COS_SWEEP), ty,
+                                   ty - LEG * (uy * COS_SWEEP - ux * SIN_SWEEP)};
+              // Line points are widget local and must not be negative, so the
+              // chevron is shifted into its own box; the shift is the offset.
+              const float minx = std::min(px[0], std::min(px[1], px[2]));
+              const float miny = std::min(py[0], std::min(py[1], py[2]));
+              for (int k = 0; k < 3; k++) {
+                arrow_pts[f][k].x = (lv_value_precise_t) lroundf(px[k] - minx);
+                arrow_pts[f][k].y = (lv_value_precise_t) lroundf(py[k] - miny);
+              }
+              arrow_ofs_x[f] = minx;
+              arrow_ofs_y[f] = miny;
+              for (int k = 0; k < PATH[f].arrows; k++)
+                lv_line_set_points(arrow[f][k], arrow_pts[f], 3);
+            }
+          }
+
           for (int f = 0; f < 7; f++) {
             const bool active = flow_kw[f] > 0.05f;
             if (!active) {
-              // Park wire and pulses once, when the flow stops.
+              // Park wire and arrows once, when the flow stops.
               if (was_active[f]) {
                 lv_obj_add_flag(wire[f], LV_OBJ_FLAG_HIDDEN);
-                for (int k = 0; k < PATH[f].dots; k++)
-                  lv_obj_add_flag(pulse[f][k], LV_OBJ_FLAG_HIDDEN);
+                for (int k = 0; k < PATH[f].arrows; k++)
+                  lv_obj_add_flag(arrow[f][k], LV_OBJ_FLAG_HIDDEN);
                 was_active[f] = false;
               }
               continue;
@@ -302,27 +347,26 @@ interval:
             const float dx = PATH[f].x1 - PATH[f].x0;
             const float dy = PATH[f].y1 - PATH[f].y0;
             const float len = sqrtf(dx * dx + dy * dy);
-            // Pulses crawl at 16 px/s and speed up to ~86 px/s at 5 kW.
+            // Arrows crawl at 16 px/s and speed up to ~86 px/s at 5 kW.
             const float speed = 16.0f + 14.0f * std::min(flow_kw[f], 5.0f);
             float phase = flow_phase[f] + speed * 0.05f / len;
             if (phase >= 1.0f)
               phase -= 1.0f;
             flow_phase[f] = phase;
 
-            for (int k = 0; k < PATH[f].dots; k++) {
-              lv_obj_t *d = pulse[f][k];
-              float t = phase + (float) k / PATH[f].dots;
+            for (int k = 0; k < PATH[f].arrows; k++) {
+              lv_obj_t *a = arrow[f][k];
+              float t = phase + (float) k / PATH[f].arrows;
               if (t >= 1.0f)
                 t -= 1.0f;
-              lv_obj_set_pos(d, (int) (PATH[f].x0 + dx * t + 0.5f) - 5,
-                                (int) (PATH[f].y0 + dy * t + 0.5f) - 5);
+              lv_obj_set_pos(a, (int) (PATH[f].x0 + dx * t + arrow_ofs_x[f] + 0.5f),
+                                (int) (PATH[f].y0 + dy * t + arrow_ofs_y[f] + 0.5f));
               // Fade in at the source and out again at the destination.
               const float fade = t < 0.12f ? t / 0.12f
                                            : (t > 0.85f ? (1.0f - t) / 0.15f : 1.0f);
-              lv_obj_set_style_bg_opa(d, (lv_opa_t) (255.0f * fade), sel);
-              lv_obj_set_style_shadow_opa(d, (lv_opa_t) (170.0f * fade), sel);
-              if (lv_obj_has_flag(d, LV_OBJ_FLAG_HIDDEN))
-                lv_obj_clear_flag(d, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_set_style_line_opa(a, (lv_opa_t) (255.0f * fade), sel);
+              if (lv_obj_has_flag(a, LV_OBJ_FLAG_HIDDEN))
+                lv_obj_clear_flag(a, LV_OBJ_FLAG_HIDDEN);
             }
           }
 
@@ -337,37 +381,24 @@ font:
       - "\U000F02DC"  # home
 
 lvgl:
-  # Shared look of the pulses: the round glowing shape and one style per
+  # Shared look of the arrows: the stroke of the chevron and one style per
   # flow colour, combined per widget via "styles:".
   style_definitions:
-    - id: pulse_dot
-      radius: 20
-      border_width: 0
-      shadow_width: 16
-      shadow_spread: 0
-      # The default theme pads every obj by ~16 px. On a 10 px dot that makes
-      # the content area negative, LVGL then thinks the dot can scroll and
-      # paints two little grey scrollbars next to it — hence pad 0 here and
-      # "scrollable: false" on every dot below.
-      pad_all: 0
-    - id: pulse_pv
-      bg_color: 0xFBBF24
-      shadow_color: 0xF59E0B
-    - id: pulse_export
-      bg_color: 0x4ADE80
-      shadow_color: 0x22C55E
-    - id: pulse_grid
-      bg_color: 0xF87171
-      shadow_color: 0xEF4444
-    - id: pulse_akku
-      bg_color: 0x22D3EE
-      shadow_color: 0x06B6D4
-    - id: pulse_wp
-      bg_color: 0xFB923C
-      shadow_color: 0xF97316
-    - id: pulse_buzz
-      bg_color: 0xA78BFA
-      shadow_color: 0x8B5CF6
+    - id: flow_arrow
+      line_width: 3
+      line_rounded: true
+    - id: arrow_pv
+      line_color: 0xFBBF24
+    - id: arrow_export
+      line_color: 0x4ADE80
+    - id: arrow_grid
+      line_color: 0xF87171
+    - id: arrow_akku
+      line_color: 0x22D3EE
+    - id: arrow_wp
+      line_color: 0xFB923C
+    - id: arrow_buzz
+      line_color: 0xA78BFA
 
   widgets:
     # ── TOP RIGHT: Live ──────────────────────────────────────
@@ -666,7 +697,7 @@ lvgl:
               text_color: 0x94A3B8
 
           # ── Wires ────────────────────────────────────────────
-          # Declared before the pulses so the pulses are drawn on top of them.
+          # Declared before the arrows so the arrows are drawn on top of them.
           # Colour is a heavily dimmed version of the flow colour; the width
           # is scaled with the power in the interval below.
           - line:
@@ -733,111 +764,84 @@ lvgl:
               line_rounded: true
               hidden: true
 
-          # ── Pulses ───────────────────────────────────────────
-          # Position and opacity come from the 50 ms interval; only the
-          # colour is configured here.
-          - obj:
-              id: dot_pv_akku_0
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_pv]
-              scrollable: false
+          # ── Arrows ───────────────────────────────────────────
+          # Position and opacity come from the 50 ms interval, and so do the
+          # points: the "points:" below are only the right-pointing chevron
+          # the schema insists on, the interval rotates them into the
+          # direction of the path on its first tick. Only the colour is
+          # really configured here.
+          - line:
+              id: arrow_pv_akku_0
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_pv]
               hidden: true
-          - obj:
-              id: dot_pv_akku_1
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_pv]
-              scrollable: false
+          - line:
+              id: arrow_pv_akku_1
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_pv]
               hidden: true
-          - obj:
-              id: dot_pv_einsp_0
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_export]
-              scrollable: false
+          - line:
+              id: arrow_pv_einsp_0
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_export]
               hidden: true
-          - obj:
-              id: dot_pv_haus_0
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_pv]
-              scrollable: false
+          - line:
+              id: arrow_pv_haus_0
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_pv]
               hidden: true
-          - obj:
-              id: dot_pv_haus_1
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_pv]
-              scrollable: false
+          - line:
+              id: arrow_pv_haus_1
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_pv]
               hidden: true
-          - obj:
-              id: dot_pv_haus_2
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_pv]
-              scrollable: false
+          - line:
+              id: arrow_pv_haus_2
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_pv]
               hidden: true
-          - obj:
-              id: dot_netz_haus_0
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_grid]
-              scrollable: false
+          - line:
+              id: arrow_netz_haus_0
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_grid]
               hidden: true
-          - obj:
-              id: dot_netz_haus_1
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_grid]
-              scrollable: false
+          - line:
+              id: arrow_netz_haus_1
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_grid]
               hidden: true
-          - obj:
-              id: dot_netz_haus_2
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_grid]
-              scrollable: false
+          - line:
+              id: arrow_netz_haus_2
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_grid]
               hidden: true
-          - obj:
-              id: dot_netz_haus_3
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_grid]
-              scrollable: false
+          - line:
+              id: arrow_netz_haus_3
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_grid]
               hidden: true
-          - obj:
-              id: dot_akku_haus_0
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_akku]
-              scrollable: false
+          - line:
+              id: arrow_akku_haus_0
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_akku]
               hidden: true
-          - obj:
-              id: dot_haus_wp_0
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_wp]
-              scrollable: false
+          - line:
+              id: arrow_haus_wp_0
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_wp]
               hidden: true
-          - obj:
-              id: dot_haus_buzz_0
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_buzz]
-              scrollable: false
+          - line:
+              id: arrow_haus_buzz_0
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_buzz]
               hidden: true
-          - obj:
-              id: dot_haus_buzz_1
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_buzz]
-              scrollable: false
+          - line:
+              id: arrow_haus_buzz_1
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_buzz]
               hidden: true
-          - obj:
-              id: dot_haus_buzz_2
-              width: 10
-              height: 10
-              styles: [pulse_dot, pulse_buzz]
-              scrollable: false
+          - line:
+              id: arrow_haus_buzz_2
+              points: ["0, 0", "7, 6", "0, 12"]
+              styles: [flow_arrow, arrow_buzz]
               hidden: true
