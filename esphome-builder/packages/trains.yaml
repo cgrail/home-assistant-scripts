@@ -1,3 +1,31 @@
+http_request:
+  timeout: 10s
+  watchdog_timeout: 30s
+
+image:
+  - platform: online_image
+    id: img_trmnl_trains
+    # format=png, not jpeg: the endpoint emits *progressive* JPEG, which
+    # ESPHome's JPEGDEC decoder cannot read (baseline only). The PNG is
+    # 1-bit greyscale and ~1 KB, so it is the cheaper download anyway.
+    url: "http://ha.grails.de:10000/dashboard-trmnl?viewport=400x120&format=png&crop_x=0&crop_y=60&crop_width=400&crop_height=120&theme=Catppuccin+Mocha&lang=de&dithering=&dither_method=none&palette=bw&no_normalize=&compression_level=1"
+    format: PNG
+    type: RGB565
+    # must match the display's byte order, which mipi_rgb defaults to big endian
+    byte_order: BIG_ENDIAN
+    resize: 375x90
+    update_interval: 5min
+    on_download_finished:
+      # Re-set src, don't just redraw: LVGL reads w/h out of the image
+      # descriptor in lv_image_set_src(), and at boot the online image is
+      # still empty (0x0, data == nullptr), so the widget latched a zero
+      # size. Re-setting src makes it re-read the header.
+      - lvgl.image.update:
+          id: trains_img
+          src: img_trmnl_trains
+    on_error:
+      - logger.log: "TRMNL train dashboard download failed"
+
 text_sensor:
   - platform: homeassistant
     id: zuzenhausen_departures_raw
@@ -27,30 +55,10 @@ text_sensor:
             while (!val.empty() && val.back() == ' ') val.pop_back();
             return val;
           };
-          auto fmt_delay = [](const std::string& d) -> std::string {
-            if (d == "--") return "--";
-            int n = static_cast<int>(atof(d.c_str()));
-            if (n == 0) return "p\xc3\xbcnktlich";
-            char buf[12];
-            snprintf(buf, sizeof(buf), n > 0 ? "+%d min" : "%d min", n);
-            return std::string(buf);
-          };
-          std::string d1_time      = json_get(x, "departure_current", 0);
           std::string d1_raw_delay = json_get(x, "delay", 0);
           int d1_delay_min         = (d1_raw_delay == "--") ? 0 : static_cast<int>(atof(d1_raw_delay.c_str()));
-          std::string d1_delay     = fmt_delay(d1_raw_delay);
-          std::string d1_dir       = json_get(x, "richtung", 0);
-          std::string d2_time  = json_get(x, "departure_current", 1);
-          std::string d2_delay = fmt_delay(json_get(x, "delay", 1));
-          std::string d2_dir   = json_get(x, "richtung", 1);
-          lv_label_set_text(id(val_dep1_time),  d1_time.c_str());
-          lv_label_set_text(id(val_dep1_delay), d1_delay.c_str());
-          lv_label_set_text(id(val_dep1_dir),   d1_dir.c_str());
-          lv_label_set_text(id(val_dep2_time),  d2_time.c_str());
-          lv_label_set_text(id(val_dep2_delay), d2_delay.c_str());
-          lv_label_set_text(id(val_dep2_dir),   d2_dir.c_str());
           if (d1_delay_min > 9) {
-            char dbuf[16];
+            char dbuf[20];
             snprintf(dbuf, sizeof(dbuf), "Zug +%d min", d1_delay_min);
             lv_label_set_text(id(overlay_delay_label), dbuf);
             lv_obj_clear_flag(id(overlay_zug_verspaetet), LV_OBJ_FLAG_HIDDEN);
@@ -71,58 +79,10 @@ lvgl:
         border_width: 1
         border_color: 0x1E293B
         pad_all: 0
+        scrollable: false
         widgets:
-          - label:
-              x: 15
-              y: 10
-              text: "Zug"
-              text_font: montserrat_14_de
-              text_color: 0x64748B
-          - label:
-              x: 230
-              y: 10
-              text: "Abfahrt"
-              text_font: montserrat_14_de
-              text_color: 0x64748B
-          - label:
-              id: val_dep1_time
-              x: 15
-              y: 30
-              text: "--:--"
-              text_color: 0x38BDF8
-          - label:
-              id: val_dep1_dir
-              x: 80
-              y: 30
-              width: 185
-              text: "--"
-              text_font: montserrat_20_de
-              text_color: 0x64748B
-          - label:
-              id: val_dep1_delay
-              x: 230
-              y: 30
-              text: "--"
-              text_font: montserrat_20_de
-              text_color: 0x4ADE80
-          - label:
-              id: val_dep2_time
-              x: 15
-              y: 60
-              text: "--:--"
-              text_color: 0x38BDF8
-          - label:
-              id: val_dep2_dir
-              x: 80
-              y: 60
-              width: 185
-              text: "--"
-              text_font: montserrat_20_de
-              text_color: 0x64748B
-          - label:
-              id: val_dep2_delay
-              x: 230
-              y: 60
-              text: "--"
-              text_font: montserrat_20_de
-              text_color: 0x4ADE80
+          - image:
+              id: trains_img
+              x: 0
+              y: 0
+              src: img_trmnl_trains
