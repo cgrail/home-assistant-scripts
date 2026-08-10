@@ -1,3 +1,33 @@
+globals:
+  # Delay of the next departure in minutes, kept so the overlay can be
+  # re-evaluated on a timer and not only when the sensor updates.
+  - id: train_delay_min
+    type: int
+    restore_value: false
+    initial_value: '0'
+
+script:
+  # Single place that decides whether the delay overlay is visible:
+  # only mornings between 06:00 and 09:00, and only above 9 min delay.
+  - id: update_delay_overlay
+    then:
+      - lambda: |-
+          auto now = id(time_comp).now();
+          bool morning = now.is_valid() && now.hour >= 6 && now.hour < 9;
+          if (morning && id(train_delay_min) > 9) {
+            char dbuf[16];
+            snprintf(dbuf, sizeof(dbuf), "Zug +%d min", id(train_delay_min));
+            lv_label_set_text(id(overlay_delay_label), dbuf);
+            lv_obj_clear_flag(id(overlay_zug_verspaetet), LV_OBJ_FLAG_HIDDEN);
+          } else {
+            lv_obj_add_flag(id(overlay_zug_verspaetet), LV_OBJ_FLAG_HIDDEN);
+          }
+
+interval:
+  - interval: 60s
+    then:
+      - script.execute: update_delay_overlay
+
 text_sensor:
   - platform: homeassistant
     id: zuzenhausen_departures_raw
@@ -49,14 +79,8 @@ text_sensor:
           lv_label_set_text(id(val_dep2_time),  d2_time.c_str());
           lv_label_set_text(id(val_dep2_delay), d2_delay.c_str());
           lv_label_set_text(id(val_dep2_dir),   d2_dir.c_str());
-          if (d1_delay_min > 9) {
-            char dbuf[16];
-            snprintf(dbuf, sizeof(dbuf), "Zug +%d min", d1_delay_min);
-            lv_label_set_text(id(overlay_delay_label), dbuf);
-            lv_obj_clear_flag(id(overlay_zug_verspaetet), LV_OBJ_FLAG_HIDDEN);
-          } else {
-            lv_obj_add_flag(id(overlay_zug_verspaetet), LV_OBJ_FLAG_HIDDEN);
-          }
+          id(train_delay_min) = d1_delay_min;
+          id(update_delay_overlay).execute();
 
 lvgl:
   widgets:
