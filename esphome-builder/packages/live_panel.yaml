@@ -115,6 +115,14 @@ sensor:
     entity_id: sensor.wattpilot_charging_power
     on_value:
       - lambda: 'id(buzz_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
+      - lvgl.label.update:
+          id: val_buzz
+          text:
+            format: "%.1f kW"
+            args: ['id(buzz_kw)']
+      - lvgl.arc.update:
+          id: arc_buzz
+          value: !lambda 'return (int) (id(buzz_kw) * 10.0f);'
 
   # ── Values that are only displayed ───────────────────────────
   - platform: homeassistant
@@ -153,30 +161,6 @@ sensor:
                 text: "-- %"
             - lvgl.arc.update:
                 id: arc_akku
-                value: 0
-
-  - platform: homeassistant
-    id: buzz_battery_level
-    entity_id: sensor.buzz_battery_level
-    on_value:
-      - if:
-          condition:
-            lambda: 'return !isnan(x);'
-          then:
-            - lvgl.label.update:
-                id: val_buzz
-                text:
-                  format: "%.0f%%"
-                  args: [x]
-            - lvgl.arc.update:
-                id: arc_buzz
-                value: !lambda 'return x;'
-          else:
-            - lvgl.label.update:
-                id: val_buzz
-                text: "-- %"
-            - lvgl.arc.update:
-                id: arc_buzz
                 value: 0
 
   - platform: homeassistant
@@ -594,7 +578,7 @@ lvgl:
               height: 80
               value: 0
               min_value: 0
-              max_value: 100
+              max_value: 110
               arc_color: 0x1E293B
               arc_width: 12
               indicator:
@@ -606,7 +590,7 @@ lvgl:
               y: 252
               width: 80
               text_align: center
-              text: "-- %"
+              text: "0.0 kW"
               text_font: montserrat_14_de
               text_color: 0xF8FAFC
           - label:
