@@ -29,6 +29,9 @@
 
 - name: "Crowpanel Energie Historie"
   unique_id: crowpanel_energie_historie
+  # A table scan over long-term statistics, and the underlying data only moves
+  # once an hour. No reason to run it more often than this.
+  scan_interval: 1800
   column: "hist"
   value_template: "{{ value if value else '' }}"
   query: >-
