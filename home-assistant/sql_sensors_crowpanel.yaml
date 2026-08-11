@@ -1,0 +1,97 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Monthly energy history for the CrowPanel history card.
+#
+# Paste into configuration.yaml (or !include it) alongside
+# template_sensors_crowpanel.yaml. Same idea as the train sensor: Home Assistant
+# serialises an array into one state string and the ESPHome device parses it
+# inline with a C++ lambda.
+#
+# State format — up to 12 entries, oldest month first, whole kWh:
+#
+#     "412/180,530/150,610/120,...,388/95"
+#      ^^^      ^^^
+#      selbst gedeckt (PV minus Einspeisung)
+#               Netzbezug
+#
+# ~120 characters, comfortably inside Home Assistant's 255-character state
+# limit. That limit is why the values are rounded to integers and why the month
+# names are not transmitted — the panel derives those from its own clock, with
+# the newest entry being the current month.
+#
+# Reads the `statistics` table: hourly long-term statistics, which the recorder
+# keeps forever. Not `statistics_short_term`, which is purged.
+# ─────────────────────────────────────────────────────────────────────────────
+
+sql:
+  - name: "Crowpanel Energie Historie"
+    unique_id: crowpanel_energie_historie
+    # A table scan over long-term statistics, and the underlying data only moves
+    # once an hour. No reason to run it more often than this.
+    scan_interval: 1800
+    column: "hist"
+    value_template: "{{ value if value else '' }}"
+    query: >-
+      WITH mon AS (
+        SELECT
+          sm.statistic_id AS sid,
+          strftime('%Y-%m', s.start_ts, 'unixepoch', 'localtime') AS ym,
+          (MAX(s.sum) - MIN(s.sum)) *
+            CASE sm.unit_of_measurement
+              WHEN 'Wh'  THEN 0.001
+              WHEN 'MWh' THEN 1000.0
+              ELSE 1.0
+            END AS kwh
+        FROM statistics s
+        JOIN statistics_meta sm ON sm.id = s.metadata_id
+        WHERE sm.statistic_id IN (
+                'sensor.fronius_total_energy',
+                'sensor.smart_meter_ts_5ka_3_real_energy_produced',
+                'sensor.smart_meter_ts_5ka_3_real_energy_consumed')
+          AND s.start_ts >= strftime('%s', date('now', 'localtime', 'start of month', '-11 months'))
+        GROUP BY sid, ym
+      )
+      SELECT group_concat(v, ',') AS hist FROM (
+        SELECT
+          ym,
+          CAST(ROUND(
+                 MAX(CASE WHEN sid = 'sensor.fronius_total_energy' THEN kwh END)
+               - MAX(CASE WHEN sid = 'sensor.smart_meter_ts_5ka_3_real_energy_produced' THEN kwh END)
+               ) AS INT)
+          || '/' ||
+          CAST(ROUND(
+                 MAX(CASE WHEN sid = 'sensor.smart_meter_ts_5ka_3_real_energy_consumed' THEN kwh END)
+               ) AS INT) AS v
+        FROM mon
+        GROUP BY ym
+        ORDER BY ym
+      );
+
+# ── Notes on the query ───────────────────────────────────────────────────────
+#
+# Units. `statistics.sum` is stored in whatever unit the statistic itself uses,
+# which is not the same for all three meters. The CASE on
+# `statistics_meta.unit_of_measurement` normalises everything to kWh, so the
+# query stays correct even if one of the meters is recorded in Wh.
+#
+# Month totals. `MAX(sum) - MIN(sum)` misses whatever accumulated inside the
+# month's *first* hour, because the first row of the month already carries that
+# hour's increment. The error is under one hour of energy on a monthly total —
+# invisible at 64 px of bar height, and not worth a boundary lookup for a wall
+# display.
+#
+# Gaps. If one of the three meters has no rows for a month, that month's `v` is
+# NULL and group_concat drops it. The panel pads the series from the left rather
+# than assuming entry 0 is the oldest slot, so a gap costs a bar but never
+# shifts the month labels off the data.
+#
+# Ordering. SQLite honours the inner ORDER BY when feeding group_concat. On
+# SQLite 3.44+ this can be stated outright as
+# `group_concat(v, ',' ORDER BY ym)`; the subquery form above also works on
+# older versions, which is why it is written this way.
+#
+# Schema. `start_ts` (REAL, epoch seconds) is the column on Home Assistant
+# 2023.4 and newer. On an older schema the column is `start`, a DATETIME, and
+# the two date expressions become:
+#
+#     strftime('%Y-%m', s.start, 'localtime')
+#     AND s.start >= datetime('now', 'localtime', 'start of month', '-11 months')

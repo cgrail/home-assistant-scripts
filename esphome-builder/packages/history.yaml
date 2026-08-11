@@ -1,127 +1,371 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# History card — today in proportion, and twelve months of autarky
+#
+# Layout (card local coordinates, 375 x 220):
+#   y   6 …  21   "HEUTE" ......................................... "kWh"
+#   y  24 …  96   four tiles: PV | Eingespeist | Netzbezug | Wärme
+#   y 102         hairline rule
+#   y 108 … 123   "12 MONATE" ......... Autark  Monat NN %  Gesamt NN %
+#   y 128 … 192   plot area, baseline 192, 64 px of headroom
+#   y 196 … 211   month labels
+#
+# The tiles repeat the icon / big value / caption rhythm the live panel uses, so
+# the eye finds the number in the same place here as it does over there. What
+# they add is the bar underneath: all four are drawn against **one shared
+# scale**, the best single-day figure this panel has ever seen, kept in flash.
+# A full PV bar therefore means "as good as it has ever been here", and a
+# February day looks as thin as it actually was — which a per-day scale could
+# never show.
+#
+# The chart below is stacked: green is what the house covered itself
+# (PV minus Einspeisung), red is what it took from the grid. Bar height is the
+# month's total consumption, so the seasons show; the green fraction is that
+# month's autarky. ESPHome's LVGL has no chart widget, so each segment is a
+# plain obj whose y and height the lambda sets.
+#
+# Icon codepoints are looked up in the cached MaterialDesign webfont, never
+# guessed — see CLAUDE.md. All four used here are already carried by mdi_20 in
+# live_panel.yaml, so this package adds no fonts.
+# ─────────────────────────────────────────────────────────────────────────────
+
+globals:
+  # Today's four figures in kWh, NaN sanitised once on the way in so no label
+  # or bar downstream needs an isnan guard.
+  - id: kwh_pv_heute
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: kwh_ein_heute
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: kwh_netz_heute
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: kwh_wp_heute
+    type: float
+    restore_value: false
+    initial_value: '0'
+
+  # The shared bar scale: the largest single-day value ever recorded. Survives
+  # reboots, and only ever grows. The initial value is a floor, not a guess — it
+  # keeps day one from being four full bars and removes the divide by zero.
+  - id: kwh_tag_peak
+    type: float
+    restore_value: true
+    initial_value: '10'
+
+  # Current month, in Wh. Only ever used as a ratio, so the unit cancels.
+  - id: wh_pv_monat
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: wh_ein_monat
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: wh_netz_monat
+    type: float
+    restore_value: false
+    initial_value: '0'
+
+  # Lifetime, in kWh. Same again.
+  - id: kwh_pv_gesamt
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: kwh_ein_gesamt
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: kwh_netz_gesamt
+    type: float
+    restore_value: false
+    initial_value: '0'
+
+  # Raw CSV from Home Assistant, kept so the chart can be redrawn on a timer as
+  # well as when the sensor updates.
+  - id: hist_csv
+    type: std::string
+    restore_value: false
+    initial_value: '""'
+
+script:
+  # The four bars share one scale, so no single sensor can set its own bar
+  # without knowing the other three. Everything that is per-sensor — the value
+  # label and the icon tint — stays with the sensor; only the scale lives here.
+  - id: refresh_heute
+    then:
+      - lambda: |-
+          const float v[4] = { id(kwh_pv_heute), id(kwh_ein_heute),
+                               id(kwh_netz_heute), id(kwh_wp_heute) };
+          // A glitched reading would otherwise be written to flash and wreck
+          // the scale permanently, so anything implausible is displayed but
+          // never allowed to set a record.
+          float peak = id(kwh_tag_peak);
+          for (int i = 0; i < 4; i++)
+            if (v[i] > peak && v[i] < 150.0f) peak = v[i];
+          id(kwh_tag_peak) = peak;
+
+          lv_obj_t *bars[4] = { id(bar_pv_heute), id(bar_ein_heute),
+                                id(bar_netz_heute), id(bar_wp_heute) };
+          for (int i = 0; i < 4; i++) {
+            int pct = (int) lroundf(100.0f * v[i] / peak);
+            if (pct < 0) pct = 0;
+            if (pct > 100) pct = 100;
+            lv_bar_set_value(bars[i], pct, LV_ANIM_ON);
+          }
+
+  # Autarkie = the share of what the house used that it did not buy:
+  #   eigen     = PV - Einspeisung
+  #   Verbrauch = eigen + Netzbezug
+  # Each triple is internally consistent in its own unit (month in Wh, lifetime
+  # in kWh), so the ratio needs no scaling. Three sensors feed each number,
+  # hence a script rather than three half-updates.
+  - id: refresh_autarkie
+    then:
+      - lambda: |-
+          auto autark = [](float pv, float ein, float netz) -> int {
+            const float eigen = pv - ein;
+            const float verbrauch = eigen + netz;
+            if (verbrauch <= 0.0f) return 0;
+            const int p = (int) lroundf(100.0f * eigen / verbrauch);
+            return p < 0 ? 0 : (p > 100 ? 100 : p);
+          };
+          char buf[20];
+          snprintf(buf, sizeof(buf), "Monat %d %%",
+                   autark(id(wh_pv_monat), id(wh_ein_monat), id(wh_netz_monat)));
+          lv_label_set_text(id(lbl_autark_monat), buf);
+          snprintf(buf, sizeof(buf), "Gesamt %d %%",
+                   autark(id(kwh_pv_gesamt), id(kwh_ein_gesamt), id(kwh_netz_gesamt)));
+          lv_label_set_text(id(lbl_autark_gesamt), buf);
+
+  # The chart depends on the CSV *and* on the clock — the month labels are
+  # derived, not transmitted — so it is a script both the sensor and the
+  # interval below can run.
+  - id: refresh_history_chart
+    then:
+      - lambda: |-
+          const int BASE = 192;   // baseline, card local
+          const int MAXH = 64;    // headroom above it
+
+          lv_obj_t *green[12] = {
+            id(hist_eigen_0),  id(hist_eigen_1),  id(hist_eigen_2),  id(hist_eigen_3),
+            id(hist_eigen_4),  id(hist_eigen_5),  id(hist_eigen_6),  id(hist_eigen_7),
+            id(hist_eigen_8),  id(hist_eigen_9),  id(hist_eigen_10), id(hist_eigen_11) };
+          lv_obj_t *red[12] = {
+            id(hist_netz_0),   id(hist_netz_1),   id(hist_netz_2),   id(hist_netz_3),
+            id(hist_netz_4),   id(hist_netz_5),   id(hist_netz_6),   id(hist_netz_7),
+            id(hist_netz_8),   id(hist_netz_9),   id(hist_netz_10),  id(hist_netz_11) };
+          lv_obj_t *lbl[12] = {
+            id(hist_lbl_0),    id(hist_lbl_1),    id(hist_lbl_2),    id(hist_lbl_3),
+            id(hist_lbl_4),    id(hist_lbl_5),    id(hist_lbl_6),    id(hist_lbl_7),
+            id(hist_lbl_8),    id(hist_lbl_9),    id(hist_lbl_10),   id(hist_lbl_11) };
+
+          // "eigen/netz,eigen/netz,..." — oldest first, up to twelve entries.
+          const std::string &s = id(hist_csv);
+          static float e[12], g[12];
+          int n = 0;
+          size_t pos = 0;
+          while (pos < s.size() && n < 12) {
+            size_t slash = s.find('/', pos);
+            if (slash == std::string::npos) break;
+            size_t comma = s.find(',', slash);
+            if (comma == std::string::npos) comma = s.size();
+            const float ev = atof(s.substr(pos, slash - pos).c_str());
+            const float gv = atof(s.substr(slash + 1, comma - slash - 1).c_str());
+            e[n] = ev < 0.0f ? 0.0f : ev;
+            g[n] = gv < 0.0f ? 0.0f : gv;
+            n++;
+            pos = comma + 1;
+          }
+
+          // A short series pads on the *left*, so the newest entry is always the
+          // rightmost slot. Losing a month costs a bar, never an alignment.
+          const int first = 12 - n;
+
+          float scale = 1.0f;
+          for (int k = 0; k < n; k++)
+            if (e[k] + g[k] > scale) scale = e[k] + g[k];
+
+          for (int i = 0; i < 12; i++) {
+            const int k = i - first;
+            int h_total = 0, h_eigen = 0;
+            if (k >= 0) {
+              const float total = e[k] + g[k];
+              h_total = (int) lroundf(MAXH * total / scale);
+              h_eigen = total > 0.0f ? (int) lroundf(h_total * e[k] / total) : 0;
+            }
+            const int h_netz = h_total - h_eigen;
+
+            // Green is the *whole* bar and red caps it, rather than the two
+            // being stacked edge to edge. Both are rounded, so an edge-to-edge
+            // join would let the card background through the corners where they
+            // meet; this way red's rounded underside sits on green.
+            if (h_total > 0) {
+              lv_obj_set_y(green[i], BASE - h_total);
+              lv_obj_set_height(green[i], h_total);
+              lv_obj_clear_flag(green[i], LV_OBJ_FLAG_HIDDEN);
+            } else {
+              lv_obj_add_flag(green[i], LV_OBJ_FLAG_HIDDEN);
+            }
+
+            if (h_netz > 0) {
+              lv_obj_set_y(red[i], BASE - h_total);
+              lv_obj_set_height(red[i], h_netz);
+              lv_obj_clear_flag(red[i], LV_OBJ_FLAG_HIDDEN);
+            } else {
+              lv_obj_add_flag(red[i], LV_OBJ_FLAG_HIDDEN);
+            }
+          }
+
+          // Slot 11 is the current month, counting backwards from there. It is
+          // still running and will keep growing, so its label is the bright one.
+          auto now = id(time_comp).now();
+          if (now.is_valid()) {
+            static const char *MON[12] = { "Jan", "Feb", "M\xc3\xa4r", "Apr",
+                                           "Mai", "Jun", "Jul", "Aug",
+                                           "Sep", "Okt", "Nov", "Dez" };
+            for (int i = 0; i < 12; i++) {
+              if (i < first) {
+                lv_label_set_text(lbl[i], "");
+                continue;
+              }
+              int m = (now.month - 1) - (11 - i);
+              while (m < 0) m += 12;
+              lv_label_set_text(lbl[i], MON[m % 12]);
+              lv_obj_set_style_text_color(lbl[i],
+                  lv_color_hex(i == 11 ? 0xE2E8F0 : 0x64748B), LV_PART_MAIN);
+            }
+          }
+
+interval:
+  # Catches the month rollover, and the first minutes after a boot where the
+  # sensor arrived before the clock was synced.
+  - interval: 5min
+    then:
+      - script.execute: refresh_history_chart
+
 sensor:
-  - platform: homeassistant
-    id: taglicher_stromverbrauch
-    entity_id: sensor.taglicher_stromvebrauch
-    on_value:
-      - lvgl.label.update:
-          id: val_heute
-          text:
-            format: "%.1f kWh"
-            args: [x]
-
-  - platform: homeassistant
-    id: tag_wp
-    entity_id: sensor.taglich_wp_gesamt
-    on_value:
-      - lvgl.label.update:
-          id: val_tag_wp
-          text:
-            format: "%.1f kWh"
-            args: [x]
-
+  # ── HEUTE ──────────────────────────────────────────────────────────────────
   - platform: homeassistant
     id: tagliche_pv_produktion
     entity_id: sensor.tagliche_pv_produktion
     on_value:
+      - lambda: |-
+          id(kwh_pv_heute) = isnan(x) ? 0.0f : x;
+          lv_obj_set_style_text_color(id(icon_pv_heute),
+              lv_color_hex(id(kwh_pv_heute) > 0.05f ? 0xFBBF24 : 0x475569), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_pv_heute
           text:
-            format: "%.1f kWh"
-            args: [x]
-
-  - platform: homeassistant
-    id: monatliche_pv_produktion
-    entity_id: sensor.monatliche_pv_produktion
-    on_value:
-      - lvgl.label.update:
-          id: val_pv_monat
-          text:
-            format: "%.0f kWh"
-            args: [x/1000]
-
-  - platform: homeassistant
-    id: monatlich_eingespeist
-    entity_id: sensor.monatlich_eingespeist
-    on_value:
-      - lvgl.label.update:
-          id: val_ein_monat
-          text:
-            format: "%.0f kWh"
-            args: [x/1000]
-
-  - platform: homeassistant
-    id: monatlich_bezug_strom_netz
-    entity_id: sensor.monatlich_bezug_strom_netz
-    on_value:
-      - lvgl.label.update:
-          id: val_netz_monat
-          text:
-            format: "%.0f kWh"
-            args: [x/1000]
-
-  - platform: homeassistant
-    id: wp_monat
-    entity_id: sensor.wp_monat
-    on_value:
-      - lvgl.label.update:
-          id: val_wp_monat
-          text:
-            format: "%.0f kWh"
-            args: [x]
-
-  - platform: homeassistant
-    id: fronius_total_energy
-    entity_id: sensor.fronius_total_energy
-    on_value:
-      - lvgl.label.update:
-          id: val_pv_gesamt
-          text:
-            format: "%.1f GWh"
-            args: [x/1000000]
-
-  - platform: homeassistant
-    id: smart_meter_ts_5ka_3_real_energy_produced
-    entity_id: sensor.smart_meter_ts_5ka_3_real_energy_produced
-    on_value:
-      - lvgl.label.update:
-          id: val_ein_gesamt
-          text:
-            format: "%.1f GWh"
-            args: [x/1000000]
-
-  - platform: homeassistant
-    id: smart_meter_ts_5ka_3_real_energy_consumed
-    entity_id: sensor.smart_meter_ts_5ka_3_real_energy_consumed
-    on_value:
-      - lvgl.label.update:
-          id: val_netz_gesamt
-          text:
-            format: "%.1f GWh"
-            args: [x/1000000]
-
-  - platform: homeassistant
-    id: warmepumpe_stromverbrauch_gesamt_von_anfang_in_gwh
-    entity_id: sensor.warmepumpe_stromverbrauch_gesamt_von_anfang_in_gwh
-    on_value:
-      - lvgl.label.update:
-          id: val_wp_gesamt
-          text:
-            format: "%.1f GWh"
-            args: [x]
+            format: "%.1f"
+            args: ['id(kwh_pv_heute)']
+      - script.execute: refresh_heute
 
   - platform: homeassistant
     id: taglich_eingespeist
     entity_id: sensor.taglich_eingespeist
     on_value:
+      - lambda: |-
+          id(kwh_ein_heute) = isnan(x) ? 0.0f : x;
+          lv_obj_set_style_text_color(id(icon_ein_heute),
+              lv_color_hex(id(kwh_ein_heute) > 0.05f ? 0x4ADE80 : 0x475569), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_ein_heute
           text:
-            format: "%.1f kWh"
-            args: [x]
+            format: "%.1f"
+            args: ['id(kwh_ein_heute)']
+      - script.execute: refresh_heute
+
+  # Entity id really is spelled "stromvebrauch" in Home Assistant.
+  - platform: homeassistant
+    id: taglicher_stromverbrauch
+    entity_id: sensor.taglicher_stromvebrauch
+    on_value:
+      - lambda: |-
+          id(kwh_netz_heute) = isnan(x) ? 0.0f : x;
+          lv_obj_set_style_text_color(id(icon_netz_heute),
+              lv_color_hex(id(kwh_netz_heute) > 0.05f ? 0xF87171 : 0x475569), LV_PART_MAIN);
+      - lvgl.label.update:
+          id: val_netz_heute
+          text:
+            format: "%.1f"
+            args: ['id(kwh_netz_heute)']
+      - script.execute: refresh_heute
+
+  - platform: homeassistant
+    id: tag_wp
+    entity_id: sensor.taglich_wp_gesamt
+    on_value:
+      - lambda: |-
+          id(kwh_wp_heute) = isnan(x) ? 0.0f : x;
+          lv_obj_set_style_text_color(id(icon_wp_heute),
+              lv_color_hex(id(kwh_wp_heute) > 0.05f ? 0xFB923C : 0x475569), LV_PART_MAIN);
+      - lvgl.label.update:
+          id: val_wp_heute
+          text:
+            format: "%.1f"
+            args: ['id(kwh_wp_heute)']
+      - script.execute: refresh_heute
+
+  # ── Autarkie: current month (Wh) ───────────────────────────────────────────
+  - platform: homeassistant
+    id: monatliche_pv_produktion
+    entity_id: sensor.monatliche_pv_produktion
+    on_value:
+      - lambda: 'id(wh_pv_monat) = isnan(x) ? 0.0f : x;'
+      - script.execute: refresh_autarkie
+
+  - platform: homeassistant
+    id: monatlich_eingespeist
+    entity_id: sensor.monatlich_eingespeist
+    on_value:
+      - lambda: 'id(wh_ein_monat) = isnan(x) ? 0.0f : x;'
+      - script.execute: refresh_autarkie
+
+  - platform: homeassistant
+    id: monatlich_bezug_strom_netz
+    entity_id: sensor.monatlich_bezug_strom_netz
+    on_value:
+      - lambda: 'id(wh_netz_monat) = isnan(x) ? 0.0f : x;'
+      - script.execute: refresh_autarkie
+
+  # ── Autarkie: lifetime (kWh) ───────────────────────────────────────────────
+  - platform: homeassistant
+    id: fronius_total_energy
+    entity_id: sensor.fronius_total_energy
+    on_value:
+      - lambda: 'id(kwh_pv_gesamt) = isnan(x) ? 0.0f : x;'
+      - script.execute: refresh_autarkie
+
+  - platform: homeassistant
+    id: smart_meter_ts_5ka_3_real_energy_produced
+    entity_id: sensor.smart_meter_ts_5ka_3_real_energy_produced
+    on_value:
+      - lambda: 'id(kwh_ein_gesamt) = isnan(x) ? 0.0f : x;'
+      - script.execute: refresh_autarkie
+
+  - platform: homeassistant
+    id: smart_meter_ts_5ka_3_real_energy_consumed
+    entity_id: sensor.smart_meter_ts_5ka_3_real_energy_consumed
+    on_value:
+      - lambda: 'id(kwh_netz_gesamt) = isnan(x) ? 0.0f : x;'
+      - script.execute: refresh_autarkie
+
+text_sensor:
+  # See home-assistant/sql_sensors_crowpanel.yaml for the query behind this.
+  - platform: homeassistant
+    id: energie_historie_raw
+    entity_id: sensor.crowpanel_energie_historie
+    on_value:
+      - lambda: 'id(hist_csv) = x;'
+      - script.execute: refresh_history_chart
 
 lvgl:
   widgets:
-    # ── Middle LEFT: HEUTE ─────────────────────────────────────────────────────
+    # ── Middle LEFT: history ───────────────────────────────────────────────────
     - obj:
         x: 20
         y: 180
@@ -132,143 +376,307 @@ lvgl:
         border_width: 1
         border_color: 0x1E293B
         pad_all: 0
+        scrollable: false
         widgets:
+          # ── HEUTE header ─────────────────────────────────────
+          # The unit is stated once here so the four tiles can spend their
+          # width on the number instead of repeating "kWh" four times.
           - label:
-              x: 15
-              y: 10
+              x: 12
+              y: 6
               text: "HEUTE"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
-
+              styles: [t_caption_sm]
+              text_align: left
           - label:
-              x: 15
-              y: 30
-              text: "PV Produktion"
-              text_font: montserrat_14_de
+              x: 263
+              y: 6
+              width: 100
+              text: "kWh"
+              styles: [t_caption_sm]
+              text_align: right
+
+          # ── Tile 1: PV ───────────────────────────────────────
+          - obj:
+              x: 10
+              y: 24
+              width: 85
+              height: 72
+              styles: [card, card_solar]
+              scrollable: false
+          - label:
+              id: icon_pv_heute
+              x: 10
+              y: 27
+              width: 85
+              text: "\U000F0A72"
+              styles: [t_icon]
               text_color: 0xFBBF24
           - label:
               id: val_pv_heute
-              x: 15
-              y: 50
-              text: "0 kWh"
-              text_color: 0xF8FAFC
-
+              x: 10
+              y: 47
+              width: 85
+              text: "0.0"
+              styles: [t_value]
           - label:
-              x: 15
-              y: 75
-              text: "Eingespeist"
-              text_font: montserrat_14_de
+              x: 10
+              y: 70
+              width: 85
+              text: "PV"
+              styles: [t_caption]
+              text_color: 0xFBBF24
+          - bar:
+              id: bar_pv_heute
+              x: 18
+              y: 89
+              width: 69
+              height: 4
+              min_value: 0
+              max_value: 100
+              value: 0
+              bg_color: 0x1E293B
+              radius: 2
+              pad_all: 0
+              scrollable: false
+              indicator:
+                bg_color: 0xFBBF24
+                radius: 2
+
+          # ── Tile 2: Eingespeist ──────────────────────────────
+          - obj:
+              x: 100
+              y: 24
+              width: 85
+              height: 72
+              styles: [card, card_export]
+              scrollable: false
+          - label:
+              id: icon_ein_heute
+              x: 100
+              y: 27
+              width: 85
+              text: "\U000F192C"
+              styles: [t_icon]
               text_color: 0x4ADE80
           - label:
               id: val_ein_heute
-              x: 15
-              y: 95
-              text: "0 kWh"
-              text_color: 0xF8FAFC
-
+              x: 100
+              y: 47
+              width: 85
+              text: "0.0"
+              styles: [t_value]
           - label:
-              x: 15
-              y: 120
-              text: "Netzbezug"
-              text_font: montserrat_14_de
+              x: 100
+              y: 70
+              width: 85
+              text: "Eingespeist"
+              styles: [t_caption]
+              text_color: 0x4ADE80
+          - bar:
+              id: bar_ein_heute
+              x: 108
+              y: 89
+              width: 69
+              height: 4
+              min_value: 0
+              max_value: 100
+              value: 0
+              bg_color: 0x1E293B
+              radius: 2
+              pad_all: 0
+              scrollable: false
+              indicator:
+                bg_color: 0x4ADE80
+                radius: 2
+
+          # ── Tile 3: Netzbezug ────────────────────────────────
+          - obj:
+              x: 190
+              y: 24
+              width: 85
+              height: 72
+              styles: [card, card_grid]
+              scrollable: false
+          - label:
+              id: icon_netz_heute
+              x: 190
+              y: 27
+              width: 85
+              text: "\U000F192D"
+              styles: [t_icon]
               text_color: 0xF87171
           - label:
-              id: val_heute
-              x: 15
-              y: 140
-              text: "0 kWh"
-              text_color: 0xF8FAFC
-
+              id: val_netz_heute
+              x: 190
+              y: 47
+              width: 85
+              text: "0.0"
+              styles: [t_value]
           - label:
-              x: 15
-              y: 165
-              text: "Wärmepumpe"
-              text_font: montserrat_14_de
-              text_color: 0x38BDF8
-          - label:
-              id: val_tag_wp
-              x: 15
-              y: 185
-              text: "0 kWh"
-              text_color: 0xF8FAFC
+              x: 190
+              y: 70
+              width: 85
+              text: "Netzbezug"
+              styles: [t_caption]
+              text_color: 0xF87171
+          - bar:
+              id: bar_netz_heute
+              x: 198
+              y: 89
+              width: 69
+              height: 4
+              min_value: 0
+              max_value: 100
+              value: 0
+              bg_color: 0x1E293B
+              radius: 2
+              pad_all: 0
+              scrollable: false
+              indicator:
+                bg_color: 0xF87171
+                radius: 2
 
-          # --- Monat ---
+          # ── Tile 4: Wärme ────────────────────────────────────
+          # "Wärmepumpe" is 103 px at 14 px and does not fit an 85 px tile. The
+          # heat-pump glyph above it, and the live panel's own Wärmepumpe card
+          # carrying the same icon, say the rest.
+          - obj:
+              x: 280
+              y: 24
+              width: 85
+              height: 72
+              styles: [card, card_heat]
+              scrollable: false
           - label:
-              x: 150
-              y: 10
-              text: "MONAT"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
-
+              id: icon_wp_heute
+              x: 280
+              y: 27
+              width: 85
+              text: "\U000F1A43"
+              styles: [t_icon]
+              text_color: 0xFB923C
           - label:
-              id: val_pv_monat
-              x: 150
-              y: 50
-              text: "0 kWh"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
-
+              id: val_wp_heute
+              x: 280
+              y: 47
+              width: 85
+              text: "0.0"
+              styles: [t_value]
           - label:
-              id: val_ein_monat
-              x: 150
-              y: 95
-              text: "0 kWh"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
+              x: 280
+              y: 70
+              width: 85
+              text: "Wärme"
+              styles: [t_caption]
+              text_color: 0xFB923C
+          - bar:
+              id: bar_wp_heute
+              x: 288
+              y: 89
+              width: 69
+              height: 4
+              min_value: 0
+              max_value: 100
+              value: 0
+              bg_color: 0x1E293B
+              radius: 2
+              pad_all: 0
+              scrollable: false
+              indicator:
+                bg_color: 0xFB923C
+                radius: 2
 
+          # ── Rule ─────────────────────────────────────────────
+          - obj:
+              x: 12
+              y: 102
+              width: 351
+              height: 1
+              bg_color: 0x1E293B
+              border_width: 0
+              radius: 0
+              pad_all: 0
+              scrollable: false
+
+          # ── Chart header ─────────────────────────────────────
+          # The two percentages are green because green is what they measure:
+          # they double as the legend for the lower half of every bar.
           - label:
-              id: val_netz_monat
-              x: 150
-              y: 140
-              text: "0 kWh"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
-
+              x: 12
+              y: 108
+              text: "12 MONATE"
+              styles: [t_caption_sm]
+              text_align: left
           - label:
-              id: val_wp_monat
-              x: 150
-              y: 185
-              text: "0 kWh"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
-
-
-          # --- GESAMT ---
+              x: 146
+              y: 108
+              text: "Autark"
+              styles: [t_caption_sm]
+              text_align: left
+              text_color: 0x64748B
+          # Both boxes are sized for "100 %", not for a typical value: the
+          # digits are proportional, so "88" is wider than "71" and a box cut
+          # to today's number would clip on some other day.
           - label:
-              x: 260
-              y: 10
-              text: "GESAMT"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
-
+              id: lbl_autark_monat
+              x: 193
+              y: 108
+              width: 78
+              text: "Monat -- %"
+              styles: [t_caption_sm]
+              text_align: right
+              text_color: 0x4ADE80
           - label:
-              id: val_pv_gesamt
-              x: 260
-              y: 50
-              text: "0 kWh"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
+              id: lbl_autark_gesamt
+              x: 277
+              y: 108
+              width: 86
+              text: "Gesamt -- %"
+              styles: [t_caption_sm]
+              text_align: right
+              text_color: 0x4ADE80
 
-          - label:
-              id: val_ein_gesamt
-              x: 260
-              y: 95
-              text: "0 kWh"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
+          # ── Chart ────────────────────────────────────────────
+          # Twelve columns at pitch 29 starting at x=16, 23 px wide. Baseline is
+          # y=192 with 64 px of headroom; y and height are set in
+          # refresh_history_chart, so the values here are placeholders.
+          - obj:  { id: hist_eigen_0,  x: 16,  y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_0,   x: 16,  y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_1,  x: 45,  y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_1,   x: 45,  y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_2,  x: 74,  y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_2,   x: 74,  y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_3,  x: 103, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_3,   x: 103, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_4,  x: 132, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_4,   x: 132, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_5,  x: 161, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_5,   x: 161, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_6,  x: 190, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_6,   x: 190, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_7,  x: 219, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_7,   x: 219, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_8,  x: 248, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_8,   x: 248, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_9,  x: 277, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_9,   x: 277, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_10, x: 306, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_10,  x: 306, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_11, x: 335, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_11,  x: 335, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
 
-          - label:
-              id: val_netz_gesamt
-              x: 260
-              y: 140
-              text: "0 kWh"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
-
-          - label:
-              id: val_wp_gesamt
-              x: 260
-              y: 185
-              text: "0 kWh"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
+          # ── Month labels ─────────────────────────────────────
+          # 12 px, not 14: "Aug" is 29 px at 14 px and would touch its
+          # neighbour at this pitch, but only 25 px at 12 px.
+          - label: { id: hist_lbl_0,  x: 13,  y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_1,  x: 42,  y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_2,  x: 71,  y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_3,  x: 100, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_4,  x: 129, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_5,  x: 158, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_6,  x: 187, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_7,  x: 216, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_8,  x: 245, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_9,  x: 274, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_10, x: 303, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_11, x: 332, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
