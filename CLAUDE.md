@@ -50,6 +50,7 @@ Verified against LVGL 9.5 / ESPHome 2026.4.5 sources in `.esphome/build/<device>
 - **`style_definitions:` + `styles: [a, b]`** removes a lot of repetition across similar widgets, but `width`/`height` must stay on the widget itself: the obj class writes its default size as a *local* style, and local styles always beat added ones. Later entries in `styles:` win, so `[card, card_grid]` is a base plus an override. `text_font:` works in a style — ESPHome ships an `lv_style_set_text_font()` overload taking a `font::Font *`.
 - Widgets are drawn in declaration order — anything that must sit on top has to come last in the `widgets:` list.
 - **Text stacked inside an `arc:` has to clear the ring, not just the widget.** Usable half-width at a distance `dy` above/below the centre is `sqrt(r_inner² − dy²)`, with `r_inner = width/2 − arc_width`; below the centre the default 135°→45° arc leaves a wedge open where `|dx| < |dy|`. An 80 px arc at `arc_width: 12` only fits ~48 px of text on its centre line — dropping to `arc_width: 8` is what makes a three-line icon/value/caption stack fit.
+- **That open wedge is not empty: `arc_rounded: true` parks a half-disc in it at each end.** The cap is centred on the arc's centreline (`r = width/2 − arc_width/2`) at the start/end angle with radius `arc_width/2`, so it reaches *past* the wedge boundary. For a bottom caption that cap, not the ring, is what the text runs into — check the distance from the text's bottom **corner** to the cap centre, not the half-width on its centre line. On the 80 px arcs here a 14 px `1.7 kW` overlaps it by 0.5 px (bitten-off looking), 12 px clears by ~4 px; that is what `t_caption_sm` exists for.
 - **`bg_grad_color` + `bg_grad_dir: VER`** gives cards depth for free, but keep the panel background that the animated arrows travel over flat: that area is re-invalidated 20×/s.
 
 ## Checking fonts without compiling
@@ -58,7 +59,7 @@ The cached fonts under `esphome-builder/.esphome/font/` can be read with the `fr
 
 - **Resolve MDI codepoints by glyph name** from the cached webfont instead of guessing them — iterate the charmap and `face.get_glyph_name()`.
 - **Measure text width** at a given px size to check a label fits its box before flashing (`Wärmepumpe` is 103 px at 14 px, so it needs a ≥ 110 px wide label). Mirror ESPHome: `face.set_pixel_sizes(size, 0)` and sum `(glyph.metrics.horiAdvance + 63) // 64` per character.
-- **Measure line height the same way** to stack rows without overlap — `(face.size.height + 63) // 64`. For the fonts in use: `montserrat_14_de` 17 px (ascender 14), `montserrat_20_de` 24 px (ascender 20), MDI *n* px at size *n*. A card 80 px tall therefore holds icon + value + caption with ~6 px of margin, and needs 84 px for a fourth row.
+- **Measure line height the same way** to stack rows without overlap — `(face.size.height + 63) // 64`. For the fonts in use: `montserrat_12_de` 15 px (ascender 12), `montserrat_14_de` 17 px (ascender 14), `montserrat_20_de` 24 px (ascender 20), MDI *n* px at size *n*. A card 80 px tall therefore holds icon + value + caption with ~6 px of margin, and needs 84 px for a fourth row.
 
 ## Home Assistant integration
 

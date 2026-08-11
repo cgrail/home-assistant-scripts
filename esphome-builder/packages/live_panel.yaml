@@ -106,18 +106,24 @@ script:
   # The two share rows under the house total. Both are fractions of the very
   # same load and the autark row prints its percentage as well as drawing it,
   # so the clamped share is worked out once here instead of once per widget.
+  #
+  # Everything is quantised to the 0.1 kW grid the labels print on first: the
+  # readings come from separate HA sensors sampled at slightly different times,
+  # so 0.64 and 0.60 kW both print "0.6 kW" while dividing out to a bar that is
+  # visibly short of full. A bar must not contradict the numbers beside it.
   - id: refresh_shares
     then:
       - lambda: |-
-          const float h = id(house_kw);
-          auto share = [h](float part) {
-            if (h <= 0.05f) return 100;
+          auto q = [](float kw) { return roundf(kw * 10.0f); };  // tenths of a kW
+          const float h = q(id(house_kw));
+          auto share = [h](float part) {                         // part in tenths
+            if (h < 1.0f) return 100;                            // house prints 0.0 kW
             const int v = (int) lroundf(100.0f * part / h);
             return v < 0 ? 0 : (v > 100 ? 100 : v);
           };
-          const int autark = share(h - id(import_kw));
+          const int autark = share(h - q(id(import_kw)));
           lv_bar_set_value(id(bar_autark), autark, LV_ANIM_ON);
-          lv_bar_set_value(id(bar_haushalt), share(id(hauswp_kw)), LV_ANIM_ON);
+          lv_bar_set_value(id(bar_haushalt), share(q(id(hauswp_kw))), LV_ANIM_ON);
           char buf[8];
           snprintf(buf, sizeof(buf), "%d %%", autark);
           lv_label_set_text(id(val_autark), buf);
@@ -506,6 +512,14 @@ lvgl:
       text_font: montserrat_14_de
       text_color: 0x94A3B8
       text_align: center
+    # Caption for the two arcs. Inside a ring the line that clears least is not
+    # the widest part of the text but its bottom corners, which run into the
+    # rounded end caps of the arc: at 14 px "1.7 kW" overlaps the cap by half a
+    # pixel and looks bitten off, at 12 px it clears it by ~4 px.
+    - id: t_caption_sm
+      text_font: montserrat_12_de
+      text_color: 0x94A3B8
+      text_align: center
 
     # Shared look of the arrows: the stroke of the chevron and one style per
     # flow colour, combined per widget via "styles:".
@@ -776,10 +790,10 @@ lvgl:
           - label:
               id: cap_akku
               x: 8
-              y: 160
+              y: 158
               width: 80
               text: "Akku"
-              styles: [t_caption]
+              styles: [t_caption_sm]
 
           # ── Buzz arc ─────────────────────────────────────────
           - arc:
@@ -815,10 +829,10 @@ lvgl:
               styles: [t_value]
           - label:
               x: 8
-              y: 280
+              y: 278
               width: 80
               text: "Buzz"
-              styles: [t_caption]
+              styles: [t_caption_sm]
 
           # ── Wärmepumpe card ──────────────────────────────────
           - obj:

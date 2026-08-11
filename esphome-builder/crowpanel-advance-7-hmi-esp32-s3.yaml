@@ -104,6 +104,12 @@ display:
 
 
 font:
+  # 12 px is only for text that has to fit inside an arc ring — see the
+  # t_caption_sm style in packages/live_panel.yaml.
+  - file: "gfonts://Montserrat"
+    id: montserrat_12_de
+    size: 12
+    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyzäöüÄÖÜß°"
   - file: "gfonts://Montserrat"
     id: montserrat_14_de
     size: 14
