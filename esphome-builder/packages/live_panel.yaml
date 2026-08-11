@@ -3,14 +3,16 @@
 #
 # Layout (panel local coordinates, 375 x 320):
 #   y   4 …  52   three header tiles: PV | Einspeisung | Netzbezug
-#   y 108 … 188   Akku arc | Haus node | "ohne WP" card
+#   y 108 … 188   Akku arc | Haus node (spans the rest of the row)
 #   y 228 … 312   Buzz arc | Wärmepumpe card | Warmwasser card
 #
 # Every card follows the same three-part rhythm — icon, big value, caption —
-# so the eye finds the number in the same place in every box. The two cards in
-# the middle column additionally carry a 5 px bar that splits their value:
-#   bar_autark    green vs red   — share of the house load not taken from grid
-#   bar_haushalt  slate vs orange — share of the house load that is not the WP
+# so the eye finds the number in the same place in every box. The Haus node is
+# the exception: it is the hub, so it lays that rhythm out horizontally and
+# spends the height it wins on the two shares the house total splits into,
+# each a labelled row of its own with a bar that puts it in proportion:
+#   Haushalt  slate vs orange — the part of the load that is not the heat pump
+#   Autark    green vs red    — the part of the load not taken from the grid
 #
 # Every connection is built from two kinds of widgets:
 #   line_<flow>     the wire, in a heavily dimmed version of the flow colour
@@ -101,23 +103,24 @@ script:
             lv_obj_set_style_text_color(id(cap_akku), lv_color_hex(tint), LV_PART_MAIN);
           }
 
-  # The two bars under the middle column, both shares of the house load.
-  - id: refresh_bars
+  # The two share rows under the house total. Both are fractions of the very
+  # same load and the autark row prints its percentage as well as drawing it,
+  # so the clamped share is worked out once here instead of once per widget.
+  - id: refresh_shares
     then:
-      - lvgl.bar.update:
-          id: bar_autark
-          value: !lambda |-
-            const float h = id(house_kw);
+      - lambda: |-
+          const float h = id(house_kw);
+          auto share = [h](float part) {
             if (h <= 0.05f) return 100;
-            const int v = (int) lroundf(100.0f * (h - id(import_kw)) / h);
+            const int v = (int) lroundf(100.0f * part / h);
             return v < 0 ? 0 : (v > 100 ? 100 : v);
-      - lvgl.bar.update:
-          id: bar_haushalt
-          value: !lambda |-
-            const float h = id(house_kw);
-            if (h <= 0.05f) return 100;
-            const int v = (int) lroundf(100.0f * id(hauswp_kw) / h);
-            return v < 0 ? 0 : (v > 100 ? 100 : v);
+          };
+          const int autark = share(h - id(import_kw));
+          lv_bar_set_value(id(bar_autark), autark, LV_ANIM_ON);
+          lv_bar_set_value(id(bar_haushalt), share(id(hauswp_kw)), LV_ANIM_ON);
+          char buf[8];
+          snprintf(buf, sizeof(buf), "%d %%", autark);
+          lv_label_set_text(id(val_autark), buf);
 
 sensor:
   - platform: homeassistant
@@ -161,7 +164,7 @@ sensor:
           text:
             format: "%.1f kW"
             args: ['id(import_kw)']
-      - script.execute: refresh_bars
+      - script.execute: refresh_shares
 
   - platform: homeassistant
     id: batterie_ladeleistung
@@ -180,7 +183,7 @@ sensor:
           text:
             format: "%.1f kW"
             args: ['id(house_kw)']
-      - script.execute: refresh_bars
+      - script.execute: refresh_shares
 
   - platform: homeassistant
     id: wp
@@ -224,7 +227,7 @@ sensor:
           text:
             format: "%.1f kW"
             args: ['id(hauswp_kw)']
-      - script.execute: refresh_bars
+      - script.execute: refresh_shares
 
   - platform: homeassistant
     id: byd_battery_box_premium_hv_state_of_charge
@@ -318,7 +321,7 @@ interval:
             { 48,  54,  48, 104, 2},
             {102,  28, 128,  28, 1},
             { 96,  54, 147, 104, 3},
-            {309,  54, 228, 104, 4},
+            {309,  54, 309, 104, 2},
             { 92, 148, 126, 148, 1},
             {187, 190, 187, 224, 1},
             {150, 190,  88, 226, 3},
@@ -336,7 +339,7 @@ interval:
             {id(arrow_pv_akku_0)->obj,   id(arrow_pv_akku_1)->obj},
             {id(arrow_pv_einsp_0)->obj},
             {id(arrow_pv_haus_0)->obj,   id(arrow_pv_haus_1)->obj,   id(arrow_pv_haus_2)->obj},
-            {id(arrow_netz_haus_0)->obj, id(arrow_netz_haus_1)->obj, id(arrow_netz_haus_2)->obj, id(arrow_netz_haus_3)->obj},
+            {id(arrow_netz_haus_0)->obj, id(arrow_netz_haus_1)->obj},
             {id(arrow_akku_haus_0)->obj},
             {id(arrow_haus_wp_0)->obj},
             {id(arrow_haus_buzz_0)->obj, id(arrow_haus_buzz_1)->obj, id(arrow_haus_buzz_2)->obj},
@@ -452,7 +455,6 @@ font:
       - "\U000F192C"  # transmission-tower-export
       - "\U000F192D"  # transmission-tower-import
       - "\U000F1903"  # home-lightning-bolt
-      - "\U000F1904"  # home-lightning-bolt-outline
       - "\U000F0084"  # battery-charging
       - "\U000F008E"  # battery-outline
       - "\U000F12A1"  # battery-low
@@ -626,12 +628,17 @@ lvgl:
               styles: [t_value]
 
           # ── Haus node ────────────────────────────────────────
-          # Drawn first so the neighbouring cards clip its glow, not the
+          # The hub of the diagram, and the only box that lays the icon / big
+          # value / caption rhythm out horizontally: the height that frees up
+          # goes to the two rows the house total breaks down into. Both rows read
+          # "what it is — how much — how much of the total", so neither bar has
+          # to be decoded from its colour alone.
+          # Drawn first so the neighbouring widgets clip its glow, not the
           # other way round.
           - obj:
               x: 130
               y: 108
-              width: 115
+              width: 235
               height: 80
               radius: 14
               bg_color: 0x11314D
@@ -645,43 +652,94 @@ lvgl:
               pad_all: 0
               scrollable: false
           - label:
-              x: 130
-              y: 116
-              width: 115
+              x: 141
+              y: 111
               text: "\U000F1903"
               styles: [t_icon]
               text_color: 0x38BDF8
           - label:
               id: val_gesamt
-              x: 130
-              y: 134
-              width: 115
+              x: 167
+              y: 111
+              width: 90
               text: "0.0 kW"
               styles: [t_value]
+              text_align: left
           - label:
-              x: 130
-              y: 158
-              width: 115
+              x: 244
+              y: 117
+              width: 110
               text: "Haus Gesamt"
               styles: [t_caption]
+              text_align: right
               text_color: 0x38BDF8
-          # Green share = everything the house did not take from the grid.
-          - bar:
-              id: bar_autark
+
+          # Row 1 — what the house draws besides the heat pump. Slate is that
+          # household share, the orange remainder is the heat pump, which is
+          # the orange card sitting directly underneath.
+          - label:
               x: 141
-              y: 178
-              width: 93
-              height: 5
+              y: 143
+              text: "Haushalt"
+              styles: [t_caption]
+          - label:
+              id: val_hauswp
+              x: 207
+              y: 143
+              width: 58
+              text: "0.0 kW"
+              styles: [t_caption]
+              text_align: left
+              text_color: 0xE2E8F0
+          - bar:
+              id: bar_haushalt
+              x: 270
+              y: 147
+              width: 84
+              height: 8
               min_value: 0
               max_value: 100
               value: 100
-              bg_color: 0x4A2222
-              radius: 3
+              bg_color: 0xB45309
+              radius: 4
+              pad_all: 0
+              scrollable: false
+              indicator:
+                bg_color: 0x94A3B8
+                radius: 4
+
+          # Row 2 — how much of that load the house covered itself: green is
+          # PV and battery, the red remainder came from the grid.
+          - label:
+              x: 141
+              y: 163
+              text: "Autark"
+              styles: [t_caption]
+          - label:
+              id: val_autark
+              x: 207
+              y: 163
+              width: 58
+              text: "100 %"
+              styles: [t_caption]
+              text_align: left
+              text_color: 0xE2E8F0
+          - bar:
+              id: bar_autark
+              x: 270
+              y: 167
+              width: 84
+              height: 8
+              min_value: 0
+              max_value: 100
+              value: 100
+              bg_color: 0xB91C1C
+              radius: 4
               pad_all: 0
               scrollable: false
               indicator:
                 bg_color: 0x4ADE80
-                radius: 3
+                radius: 4
 
           # ── Akku arc ─────────────────────────────────────────
           - arc:
@@ -722,52 +780,6 @@ lvgl:
               width: 80
               text: "Akku"
               styles: [t_caption]
-
-          # ── "ohne WP" card ───────────────────────────────────
-          - obj:
-              x: 253
-              y: 108
-              width: 112
-              height: 80
-              styles: [card]
-              scrollable: false
-          - label:
-              x: 253
-              y: 116
-              width: 112
-              text: "\U000F1904"
-              styles: [t_icon]
-              text_color: 0x94A3B8
-          - label:
-              id: val_hauswp
-              x: 253
-              y: 134
-              width: 112
-              text: "0.0 kW"
-              styles: [t_value]
-          - label:
-              x: 253
-              y: 158
-              width: 112
-              text: "ohne WP"
-              styles: [t_caption]
-          # Slate share = household, orange remainder = heat pump.
-          - bar:
-              id: bar_haushalt
-              x: 264
-              y: 178
-              width: 90
-              height: 5
-              min_value: 0
-              max_value: 100
-              value: 100
-              bg_color: 0x4A2C11
-              radius: 3
-              pad_all: 0
-              scrollable: false
-              indicator:
-                bg_color: 0x94A3B8
-                radius: 3
 
           # ── Buzz arc ─────────────────────────────────────────
           - arc:
@@ -934,7 +946,7 @@ lvgl:
               id: line_netz_haus
               points:
                 - 309, 54
-                - 228, 104
+                - 309, 104
               line_color: 0x4A2222
               line_width: 2
               line_rounded: true
@@ -1010,16 +1022,6 @@ lvgl:
               hidden: true
           - line:
               id: arrow_netz_haus_1
-              points: ["0, 0", "7, 6", "0, 12"]
-              styles: [flow_arrow, arrow_grid]
-              hidden: true
-          - line:
-              id: arrow_netz_haus_2
-              points: ["0, 0", "7, 6", "0, 12"]
-              styles: [flow_arrow, arrow_grid]
-              hidden: true
-          - line:
-              id: arrow_netz_haus_3
               points: ["0, 0", "7, 6", "0, 12"]
               styles: [flow_arrow, arrow_grid]
               hidden: true
