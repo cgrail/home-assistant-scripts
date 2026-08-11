@@ -468,7 +468,7 @@ font:
       - "\U000F12A3"  # battery-high
       - "\U000F0B6C"  # car-electric
       - "\U000F0238"  # fire
-      - "\U000F0828"  # hot-tub
+      - "\U000F1A85"  # water-thermometer
   - file: "https://github.com/Templarian/MaterialDesign-Webfont/raw/master/fonts/materialdesignicons-webfont.ttf"
     id: mdi_14
     size: 14
@@ -892,7 +892,7 @@ lvgl:
               x: 253
               y: 232
               width: 112
-              text: "\U000F0828"
+              text: "\U000F1A85"
               styles: [t_icon]
               text_color: 0xFB923C
           - label:
