@@ -1,8 +1,13 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Monthly energy history for the CrowPanel history card.
 #
-# Paste into configuration.yaml (or !include it) alongside
-# template_sensors_crowpanel.yaml. Same idea as the train sensor: Home Assistant
+# This file is the *value* of the `sql:` key, not a complete config block —
+# include it from configuration.yaml alongside template_sensors_crowpanel.yaml:
+#
+#     sql: !include home-assistant/sql_sensors_crowpanel.yaml
+#
+# so it must start at the list, with no `sql:` of its own; otherwise the key
+# ends up nested inside itself. Same idea as the train sensor: Home Assistant
 # serialises an array into one state string and the ESPHome device parses it
 # inline with a C++ lambda.
 #
@@ -22,51 +27,55 @@
 # keeps forever. Not `statistics_short_term`, which is purged.
 # ─────────────────────────────────────────────────────────────────────────────
 
-sql:
-  - name: "Crowpanel Energie Historie"
-    unique_id: crowpanel_energie_historie
-    # A table scan over long-term statistics, and the underlying data only moves
-    # once an hour. No reason to run it more often than this.
-    scan_interval: 1800
-    column: "hist"
-    value_template: "{{ value if value else '' }}"
-    query: >-
-      WITH mon AS (
-        SELECT
-          sm.statistic_id AS sid,
-          strftime('%Y-%m', s.start_ts, 'unixepoch', 'localtime') AS ym,
-          (MAX(s.sum) - MIN(s.sum)) *
-            CASE sm.unit_of_measurement
-              WHEN 'Wh'  THEN 0.001
-              WHEN 'MWh' THEN 1000.0
-              ELSE 1.0
-            END AS kwh
-        FROM statistics s
-        JOIN statistics_meta sm ON sm.id = s.metadata_id
-        WHERE sm.statistic_id IN (
-                'sensor.fronius_total_energy',
-                'sensor.smart_meter_ts_5ka_3_real_energy_produced',
-                'sensor.smart_meter_ts_5ka_3_real_energy_consumed')
-          AND s.start_ts >= strftime('%s', date('now', 'localtime', 'start of month', '-11 months'))
-        GROUP BY sid, ym
-      )
-      SELECT group_concat(v, ',') AS hist FROM (
-        SELECT
-          ym,
-          CAST(ROUND(
-                 MAX(CASE WHEN sid = 'sensor.fronius_total_energy' THEN kwh END)
-               - MAX(CASE WHEN sid = 'sensor.smart_meter_ts_5ka_3_real_energy_produced' THEN kwh END)
-               ) AS INT)
-          || '/' ||
-          CAST(ROUND(
-                 MAX(CASE WHEN sid = 'sensor.smart_meter_ts_5ka_3_real_energy_consumed' THEN kwh END)
-               ) AS INT) AS v
-        FROM mon
-        GROUP BY ym
-        ORDER BY ym
-      );
+- name: "Crowpanel Energie Historie"
+  unique_id: crowpanel_energie_historie
+  column: "hist"
+  value_template: "{{ value if value else '' }}"
+  query: >-
+    WITH mon AS (
+      SELECT
+        sm.statistic_id AS sid,
+        strftime('%Y-%m', s.start_ts, 'unixepoch', 'localtime') AS ym,
+        (MAX(s.sum) - MIN(s.sum)) *
+          CASE sm.unit_of_measurement
+            WHEN 'Wh'  THEN 0.001
+            WHEN 'MWh' THEN 1000.0
+            ELSE 1.0
+          END AS kwh
+      FROM statistics s
+      JOIN statistics_meta sm ON sm.id = s.metadata_id
+      WHERE sm.statistic_id IN (
+              'sensor.fronius_total_energy',
+              'sensor.smart_meter_ts_5ka_3_real_energy_produced',
+              'sensor.smart_meter_ts_5ka_3_real_energy_consumed')
+        AND s.start_ts >= strftime('%s', date('now', 'localtime', 'start of month', '-11 months'))
+      GROUP BY sid, ym
+    )
+    SELECT group_concat(v, ',') AS hist FROM (
+      SELECT
+        ym,
+        CAST(ROUND(
+               MAX(CASE WHEN sid = 'sensor.fronius_total_energy' THEN kwh END)
+             - MAX(CASE WHEN sid = 'sensor.smart_meter_ts_5ka_3_real_energy_produced' THEN kwh END)
+             ) AS INT)
+        || '/' ||
+        CAST(ROUND(
+               MAX(CASE WHEN sid = 'sensor.smart_meter_ts_5ka_3_real_energy_consumed' THEN kwh END)
+             ) AS INT) AS v
+      FROM mon
+      GROUP BY ym
+      ORDER BY ym
+    );
 
 # ── Notes on the query ───────────────────────────────────────────────────────
+#
+# Polling. `scan_interval` is not part of the SQL integration's schema — it is
+# rejected as an invalid option — so this runs on the integration's own fixed
+# interval, which is far more often than the underlying data moves (long-term
+# statistics gain a row once an hour). If the table scan ever shows up in the
+# recorder's timings, turn polling off in the entity's settings and drive it
+# from an automation calling `homeassistant.update_entity` on a slow trigger,
+# rather than looking for a knob here.
 #
 # Units. `statistics.sum` is stored in whatever unit the statistic itself uses,
 # which is not the same for all three meters. The CASE on
