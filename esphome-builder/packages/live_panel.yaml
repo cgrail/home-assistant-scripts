@@ -2,9 +2,15 @@
 # Live panel — energy flow diagram
 #
 # Layout (panel local coordinates, 375 x 320):
-#   y   6 …  52   header row: PV | Einspeisung | Netzbezug (icon + value)
+#   y   4 …  52   three header tiles: PV | Einspeisung | Netzbezug
 #   y 108 … 188   Akku arc | Haus node | "ohne WP" card
 #   y 228 … 312   Buzz arc | Wärmepumpe card | Warmwasser card
+#
+# Every card follows the same three-part rhythm — icon, big value, caption —
+# so the eye finds the number in the same place in every box. The two cards in
+# the middle column additionally carry a 5 px bar that splits their value:
+#   bar_autark    green vs red   — share of the house load not taken from grid
+#   bar_haushalt  slate vs orange — share of the house load that is not the WP
 #
 # Every connection is built from two kinds of widgets:
 #   line_<flow>     the wire, in a heavily dimmed version of the flow colour
@@ -15,6 +21,11 @@
 # Visibility, wire width, arrow direction and arrow speed are derived centrally
 # in the 50 ms interval below, so a flow is never inconsistent with the numbers
 # next to it.
+#
+# Icon codepoints are looked up in the cached MaterialDesign webfont, never
+# guessed — see CLAUDE.md. They are written as UTF-8 byte escapes inside
+# lambdas (block scalars pass them straight to C++) and as \U escapes in the
+# YAML strings that the font glyph list and the static labels use.
 # ─────────────────────────────────────────────────────────────────────────────
 
 globals:
@@ -39,6 +50,10 @@ globals:
     type: float
     restore_value: false
     initial_value: '0'
+  - id: hauswp_kw        # house consumption without the heat pump
+    type: float
+    restore_value: false
+    initial_value: '0'
   - id: wp_kw
     type: float
     restore_value: false
@@ -47,13 +62,72 @@ globals:
     type: float
     restore_value: false
     initial_value: '0'
+  - id: soc_pct          # battery state of charge, negative while unknown
+    type: float
+    restore_value: false
+    initial_value: '-1'
+
+script:
+  # Battery icon, arc colour and caption depend on charge *and* state of
+  # charge, so both sensors funnel through here instead of half-updating it.
+  - id: refresh_akku
+    then:
+      - lambda: |-
+          const float p = id(batt_kw);
+          const float soc = id(soc_pct);
+          const bool charging = p > 0.05f;
+          const bool low = soc >= 0.0f && soc < 20.0f;
+          const char *icon;
+          if (charging)          icon = "\xF3\xB0\x82\x84";  // battery-charging
+          else if (soc < 0.0f)   icon = "\xF3\xB0\x82\x8E";  // battery-outline
+          else if (soc >= 66.0f) icon = "\xF3\xB1\x8A\xA3";  // battery-high
+          else if (soc >= 33.0f) icon = "\xF3\xB1\x8A\xA2";  // battery-medium
+          else                   icon = "\xF3\xB1\x8A\xA1";  // battery-low
+          const uint32_t tint = charging ? 0x4ADE80 : (low ? 0xF87171 : 0x22D3EE);
+          lv_label_set_text(id(icon_akku), icon);
+          lv_obj_set_style_text_color(id(icon_akku), lv_color_hex(tint), LV_PART_MAIN);
+          lv_obj_set_style_arc_color(id(arc_akku), lv_color_hex(low ? 0xF87171 : 0x22D3EE),
+                                     LV_PART_INDICATOR);
+          // Idle batteries say "Akku", moving ones say how fast. The direction
+          // is already in the icon, so the number stays unsigned and narrow
+          // enough to clear the ring.
+          if (fabsf(p) < 0.05f) {
+            lv_label_set_text(id(cap_akku), "Akku");
+            lv_obj_set_style_text_color(id(cap_akku), lv_color_hex(0x94A3B8), LV_PART_MAIN);
+          } else {
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%.1f kW", fabsf(p));
+            lv_label_set_text(id(cap_akku), buf);
+            lv_obj_set_style_text_color(id(cap_akku), lv_color_hex(tint), LV_PART_MAIN);
+          }
+
+  # The two bars under the middle column, both shares of the house load.
+  - id: refresh_bars
+    then:
+      - lvgl.bar.update:
+          id: bar_autark
+          value: !lambda |-
+            const float h = id(house_kw);
+            if (h <= 0.05f) return 100;
+            const int v = (int) lroundf(100.0f * (h - id(import_kw)) / h);
+            return v < 0 ? 0 : (v > 100 ? 100 : v);
+      - lvgl.bar.update:
+          id: bar_haushalt
+          value: !lambda |-
+            const float h = id(house_kw);
+            if (h <= 0.05f) return 100;
+            const int v = (int) lroundf(100.0f * id(hauswp_kw) / h);
+            return v < 0 ? 0 : (v > 100 ? 100 : v);
 
 sensor:
   - platform: homeassistant
     id: pv
     entity_id: sensor.solarnet_power_photovoltaics
     on_value:
-      - lambda: 'id(pv_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
+      - lambda: |-
+          id(pv_kw) = isnan(x) ? 0.0f : x / 1000.0f;
+          lv_obj_set_style_text_color(id(icon_pv),
+              lv_color_hex(id(pv_kw) > 0.05f ? 0xFBBF24 : 0x475569), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_pv
           text:
@@ -64,7 +138,10 @@ sensor:
     id: pv_eingespeist
     entity_id: sensor.solarnet_power_grid_export
     on_value:
-      - lambda: 'id(export_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
+      - lambda: |-
+          id(export_kw) = isnan(x) ? 0.0f : x / 1000.0f;
+          lv_obj_set_style_text_color(id(icon_export),
+              lv_color_hex(id(export_kw) > 0.05f ? 0x4ADE80 : 0x475569), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_eingespeist
           text:
@@ -75,18 +152,23 @@ sensor:
     id: netzbezug
     entity_id: sensor.solarnet_power_grid_import
     on_value:
-      - lambda: 'id(import_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
+      - lambda: |-
+          id(import_kw) = isnan(x) ? 0.0f : x / 1000.0f;
+          lv_obj_set_style_text_color(id(icon_grid),
+              lv_color_hex(id(import_kw) > 0.05f ? 0xF87171 : 0x475569), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_netz
           text:
             format: "%.1f kW"
             args: ['id(import_kw)']
+      - script.execute: refresh_bars
 
   - platform: homeassistant
     id: batterie_ladeleistung
     entity_id: sensor.batterie_ladeleistung_entladeleistung
     on_value:
       - lambda: 'id(batt_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
+      - script.execute: refresh_akku
 
   - platform: homeassistant
     id: gesamt_stromverbrauch
@@ -98,12 +180,16 @@ sensor:
           text:
             format: "%.1f kW"
             args: ['id(house_kw)']
+      - script.execute: refresh_bars
 
   - platform: homeassistant
     id: wp
     entity_id: sensor.strom_warmpumpe_in_kwh
     on_value:
-      - lambda: 'id(wp_kw) = isnan(x) ? 0.0f : x;'
+      - lambda: |-
+          id(wp_kw) = isnan(x) ? 0.0f : x;
+          lv_obj_set_style_text_color(id(icon_wp),
+              lv_color_hex(id(wp_kw) > 0.05f ? 0xFB923C : 0x475569), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_wp
           text:
@@ -114,7 +200,10 @@ sensor:
     id: wattpilot_charging_power
     entity_id: sensor.wattpilot_charging_power
     on_value:
-      - lambda: 'id(buzz_kw) = isnan(x) ? 0.0f : x / 1000.0f;'
+      - lambda: |-
+          id(buzz_kw) = isnan(x) ? 0.0f : x / 1000.0f;
+          lv_obj_set_style_text_color(id(icon_buzz),
+              lv_color_hex(id(buzz_kw) > 0.05f ? 0xA78BFA : 0x475569), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_buzz
           text:
@@ -129,39 +218,39 @@ sensor:
     id: hausverbrauch_ohne_wp
     entity_id: sensor.hausverbrauch_ohne_wp
     on_value:
-      - if:
-          condition:
-            lambda: 'return !isnan(x);'
-          then:
-            - lvgl.label.update:
-                id: val_hauswp
-                text:
-                  format: "%.1f kW"
-                  args: [x]
+      - lambda: 'id(hauswp_kw) = isnan(x) ? 0.0f : x;'
+      - lvgl.label.update:
+          id: val_hauswp
+          text:
+            format: "%.1f kW"
+            args: ['id(hauswp_kw)']
+      - script.execute: refresh_bars
 
   - platform: homeassistant
     id: byd_battery_box_premium_hv_state_of_charge
     entity_id: sensor.byd_battery_box_premium_hv_state_of_charge
     on_value:
+      - lambda: 'id(soc_pct) = isnan(x) ? -1.0f : x;'
       - if:
           condition:
-            lambda: 'return !isnan(x);'
+            lambda: 'return id(soc_pct) >= 0.0f;'
           then:
             - lvgl.label.update:
                 id: val_akku
                 text:
                   format: "%.0f%%"
-                  args: [x]
+                  args: ['id(soc_pct)']
             - lvgl.arc.update:
                 id: arc_akku
-                value: !lambda 'return x;'
+                value: !lambda 'return id(soc_pct);'
           else:
             - lvgl.label.update:
                 id: val_akku
-                text: "-- %"
+                text: "--%"
             - lvgl.arc.update:
                 id: arc_akku
                 value: 0
+      - script.execute: refresh_akku
 
   - platform: homeassistant
     id: tagliche_wp_heizzyklen
@@ -188,7 +277,7 @@ sensor:
             - lvgl.label.update:
                 id: val_wp_ruecklauf
                 text:
-                  format: "Rück: %.1f °C"
+                  format: "Rück %.1f °C"
                   args: [x]
 
   - platform: homeassistant
@@ -227,12 +316,12 @@ interval:
           // keeps them roughly 25 px apart on every path.
           static const struct { int16_t x0, y0, x1, y1; uint8_t arrows; } PATH[7] = {
             { 48,  54,  48, 104, 2},
-            {102,  18, 128,  18, 1},
+            {102,  28, 128,  28, 1},
             { 96,  54, 147, 104, 3},
             {309,  54, 228, 104, 4},
             { 92, 148, 126, 148, 1},
-            {187, 186, 187, 224, 1},
-            {150, 186,  88, 226, 3},
+            {187, 190, 187, 224, 1},
+            {150, 190,  88, 226, 3},
           };
           lv_obj_t *wire[7] = {
             id(line_pv_akku)->obj,
@@ -362,12 +451,62 @@ font:
       - "\U000F0A72"  # solar-power
       - "\U000F192C"  # transmission-tower-export
       - "\U000F192D"  # transmission-tower-import
-      - "\U000F02DC"  # home
+      - "\U000F1903"  # home-lightning-bolt
+      - "\U000F1904"  # home-lightning-bolt-outline
+      - "\U000F0084"  # battery-charging
+      - "\U000F008E"  # battery-outline
+      - "\U000F12A1"  # battery-low
+      - "\U000F12A2"  # battery-medium
+      - "\U000F12A3"  # battery-high
+      - "\U000F0B6C"  # car-electric
+      - "\U000F1A43"  # heat-pump
+      - "\U000F0F92"  # water-boiler
+  - file: "https://github.com/Templarian/MaterialDesign-Webfont/raw/master/fonts/materialdesignicons-webfont.ttf"
+    id: mdi_14
+    size: 14
+    glyphs:
+      - "\U000F0709"  # restart
+      - "\U000F0E02"  # thermometer-chevron-down
 
 lvgl:
-  # Shared look of the arrows: the stroke of the chevron and one style per
-  # flow colour, combined per widget via "styles:".
   style_definitions:
+    # Cards: one dark inset panel, tinted only by the border so the accent
+    # colour of a box is stated once and never repeated per widget.
+    - id: card
+      bg_color: 0x101A2C
+      bg_grad_color: 0x0C1322
+      bg_grad_dir: VER
+      radius: 10
+      border_width: 1
+      border_color: 0x22304A
+      pad_all: 0
+    - id: card_solar
+      border_color: 0x3D3418
+    - id: card_export
+      border_color: 0x1B4030
+    - id: card_grid
+      border_color: 0x3F2222
+    - id: card_heat
+      border_color: 0x3D2B17
+
+    # The three text roles every box is built from.
+    - id: t_icon
+      text_font: mdi_20
+      text_align: center
+    - id: t_icon_sm
+      text_font: mdi_14
+      text_align: center
+    - id: t_value
+      text_font: montserrat_20_de
+      text_color: 0xF8FAFC
+      text_align: center
+    - id: t_caption
+      text_font: montserrat_14_de
+      text_color: 0x94A3B8
+      text_align: center
+
+    # Shared look of the arrows: the stroke of the chevron and one style per
+    # flow colour, combined per widget via "styles:".
     - id: flow_arrow
       line_width: 3
       line_rounded: true
@@ -398,70 +537,93 @@ lvgl:
         pad_all: 0
         scrollable: false
         widgets:
-          # ── Header row ───────────────────────────────────────
+          # ── Header tiles ─────────────────────────────────────
+          # The gap between the PV and the Einspeisung tile is wide on
+          # purpose: the export arrow travels through it.
+          - obj:
+              x: 8
+              y: 4
+              width: 92
+              height: 48
+              styles: [card, card_solar]
+              scrollable: false
+          - obj:
+              x: 130
+              y: 4
+              width: 114
+              height: 48
+              styles: [card, card_export]
+              scrollable: false
+          - obj:
+              x: 254
+              y: 4
+              width: 111
+              height: 48
+              styles: [card, card_grid]
+              scrollable: false
+
           - label:
-              x: 31
-              y: 8
+              id: icon_pv
+              x: 32
+              y: 6
               text: "\U000F0A72"
-              text_font: mdi_20
+              styles: [t_icon]
               text_color: 0xFBBF24
           - label:
-              x: 55
-              y: 11
+              x: 56
+              y: 8
               text: "PV"
-              text_font: montserrat_14_de
+              styles: [t_caption]
               text_color: 0xFBBF24
           - label:
               id: val_pv
               x: 8
-              y: 27
+              y: 26
               width: 92
-              text_align: center
               text: "0.0 kW"
-              text_font: montserrat_20_de
-              text_color: 0xF8FAFC
+              styles: [t_value]
+
           - label:
+              id: icon_export
               x: 133
-              y: 8
+              y: 6
               text: "\U000F192C"
-              text_font: mdi_20
+              styles: [t_icon]
               text_color: 0x4ADE80
           - label:
               x: 157
-              y: 11
+              y: 8
               text: "Einspeisung"
-              text_font: montserrat_14_de
+              styles: [t_caption]
               text_color: 0x4ADE80
           - label:
               id: val_eingespeist
-              x: 135
-              y: 27
-              width: 110
-              text_align: center
+              x: 130
+              y: 26
+              width: 114
               text: "0.0 kW"
-              text_font: montserrat_20_de
-              text_color: 0xF8FAFC
+              styles: [t_value]
+
           - label:
-              x: 258
-              y: 8
+              id: icon_grid
+              x: 260
+              y: 6
               text: "\U000F192D"
-              text_font: mdi_20
+              styles: [t_icon]
               text_color: 0xF87171
           - label:
               x: 284
-              y: 11
+              y: 8
               text: "Netzbezug"
-              text_font: montserrat_14_de
+              styles: [t_caption]
               text_color: 0xF87171
           - label:
               id: val_netz
-              x: 253
-              y: 27
-              width: 112
-              text_align: center
+              x: 254
+              y: 26
+              width: 111
               text: "0.0 kW"
-              text_font: montserrat_20_de
-              text_color: 0xF8FAFC
+              styles: [t_value]
 
           # ── Haus node ────────────────────────────────────────
           # Drawn first so the neighbouring cards clip its glow, not the
@@ -470,9 +632,11 @@ lvgl:
               x: 130
               y: 108
               width: 115
-              height: 76
+              height: 80
               radius: 14
-              bg_color: 0x102B45
+              bg_color: 0x11314D
+              bg_grad_color: 0x0C2038
+              bg_grad_dir: VER
               border_width: 2
               border_color: 0x38BDF8
               shadow_color: 0x38BDF8
@@ -482,29 +646,42 @@ lvgl:
               scrollable: false
           - label:
               x: 130
-              y: 113
+              y: 116
               width: 115
-              text_align: center
-              text: "\U000F02DC"
-              text_font: mdi_20
-              text_color: 0x38BDF8
-          - label:
-              x: 130
-              y: 135
-              width: 115
-              text_align: center
-              text: "Haus Gesamt"
-              text_font: montserrat_14_de
+              text: "\U000F1903"
+              styles: [t_icon]
               text_color: 0x38BDF8
           - label:
               id: val_gesamt
               x: 130
-              y: 152
+              y: 134
               width: 115
-              text_align: center
               text: "0.0 kW"
-              text_font: montserrat_20_de
-              text_color: 0xF8FAFC
+              styles: [t_value]
+          - label:
+              x: 130
+              y: 158
+              width: 115
+              text: "Haus Gesamt"
+              styles: [t_caption]
+              text_color: 0x38BDF8
+          # Green share = everything the house did not take from the grid.
+          - bar:
+              id: bar_autark
+              x: 141
+              y: 178
+              width: 93
+              height: 5
+              min_value: 0
+              max_value: 100
+              value: 100
+              bg_color: 0x4A2222
+              radius: 3
+              pad_all: 0
+              scrollable: false
+              indicator:
+                bg_color: 0x4ADE80
+                radius: 3
 
           # ── Akku arc ─────────────────────────────────────────
           - arc:
@@ -516,58 +693,81 @@ lvgl:
               value: 0
               min_value: 0
               max_value: 100
-              arc_color: 0x1E293B
-              arc_width: 12
+              arc_color: 0x1B2942
+              arc_width: 8
+              arc_rounded: true
               indicator:
                 arc_color: 0x22D3EE
-                arc_width: 12
+                arc_width: 8
+                arc_rounded: true
+          - label:
+              id: icon_akku
+              x: 8
+              y: 118
+              width: 80
+              text: "\U000F008E"
+              styles: [t_icon]
+              text_color: 0x22D3EE
           - label:
               id: val_akku
               x: 8
-              y: 132
+              y: 136
               width: 80
-              text_align: center
-              text: "-- %"
-              text_font: montserrat_14_de
-              text_color: 0xF8FAFC
+              text: "--%"
+              styles: [t_value]
           - label:
+              id: cap_akku
               x: 8
-              y: 148
+              y: 160
               width: 80
-              text_align: center
               text: "Akku"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
+              styles: [t_caption]
 
           # ── "ohne WP" card ───────────────────────────────────
           - obj:
               x: 253
               y: 108
               width: 112
-              height: 76
-              radius: 10
-              bg_color: 0x101A2C
-              border_width: 1
-              border_color: 0x22304A
-              pad_all: 0
+              height: 80
+              styles: [card]
               scrollable: false
           - label:
               x: 253
-              y: 126
+              y: 116
               width: 112
-              text_align: center
-              text: "ohne WP"
-              text_font: montserrat_14_de
+              text: "\U000F1904"
+              styles: [t_icon]
               text_color: 0x94A3B8
           - label:
               id: val_hauswp
               x: 253
-              y: 144
+              y: 134
               width: 112
-              text_align: center
               text: "0.0 kW"
-              text_font: montserrat_20_de
-              text_color: 0xF8FAFC
+              styles: [t_value]
+          - label:
+              x: 253
+              y: 158
+              width: 112
+              text: "ohne WP"
+              styles: [t_caption]
+          # Slate share = household, orange remainder = heat pump.
+          - bar:
+              id: bar_haushalt
+              x: 264
+              y: 178
+              width: 90
+              height: 5
+              min_value: 0
+              max_value: 100
+              value: 100
+              bg_color: 0x4A2C11
+              radius: 3
+              pad_all: 0
+              scrollable: false
+              indicator:
+                bg_color: 0x94A3B8
+                radius: 3
 
           # ── Buzz arc ─────────────────────────────────────────
           - arc:
@@ -579,28 +779,34 @@ lvgl:
               value: 0
               min_value: 0
               max_value: 11
-              arc_color: 0x1E293B
-              arc_width: 12
+              arc_color: 0x1B2942
+              arc_width: 8
+              arc_rounded: true
               indicator:
                 arc_color: 0xA78BFA
-                arc_width: 12
+                arc_width: 8
+                arc_rounded: true
+          - label:
+              id: icon_buzz
+              x: 8
+              y: 238
+              width: 80
+              text: "\U000F0B6C"
+              styles: [t_icon]
+              text_color: 0x475569
           - label:
               id: val_buzz
               x: 8
-              y: 252
+              y: 256
               width: 80
-              text_align: center
               text: "0 kW"
-              text_font: montserrat_14_de
-              text_color: 0xF8FAFC
+              styles: [t_value]
           - label:
               x: 8
-              y: 268
+              y: 280
               width: 80
-              text_align: center
               text: "Buzz"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
+              styles: [t_caption]
 
           # ── Wärmepumpe card ──────────────────────────────────
           - obj:
@@ -608,38 +814,45 @@ lvgl:
               y: 228
               width: 115
               height: 84
-              radius: 10
-              bg_color: 0x101A2C
-              border_width: 1
-              border_color: 0x22304A
-              pad_all: 0
+              styles: [card, card_heat]
               scrollable: false
           - label:
+              id: icon_wp
               x: 130
-              y: 238
+              y: 232
               width: 115
-              text_align: center
-              text: "Wärmepumpe"
-              text_font: montserrat_14_de
-              text_color: 0xFB923C
+              text: "\U000F1A43"
+              styles: [t_icon]
+              text_color: 0x475569
           - label:
               id: val_wp
               x: 130
-              y: 256
+              y: 250
               width: 115
-              text_align: center
               text: "0.0 kW"
-              text_font: montserrat_20_de
-              text_color: 0xF8FAFC
+              styles: [t_value]
+          - label:
+              x: 130
+              y: 273
+              width: 115
+              text: "Wärmepumpe"
+              styles: [t_caption]
+              text_color: 0xFB923C
+          - label:
+              x: 151
+              y: 293
+              text: "\U000F0709"
+              styles: [t_icon_sm]
+              text_color: 0x64748B
           - label:
               id: val_wp_zyklen
-              x: 130
-              y: 284
-              width: 115
-              text_align: center
+              x: 169
+              y: 292
+              width: 76
               text: "-- Starts"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
+              styles: [t_caption]
+              text_align: left
+              text_color: 0x64748B
 
           # ── Warmwasser card ──────────────────────────────────
           - obj:
@@ -647,38 +860,44 @@ lvgl:
               y: 228
               width: 112
               height: 84
-              radius: 10
-              bg_color: 0x101A2C
-              border_width: 1
-              border_color: 0x22304A
-              pad_all: 0
+              styles: [card, card_heat]
               scrollable: false
           - label:
               x: 253
-              y: 238
+              y: 232
               width: 112
-              text_align: center
-              text: "Warmwasser"
-              text_font: montserrat_14_de
+              text: "\U000F0F92"
+              styles: [t_icon]
               text_color: 0xFB923C
           - label:
               id: val_wasser
               x: 253
-              y: 256
+              y: 250
               width: 112
-              text_align: center
               text: "0.0 °C"
-              text_font: montserrat_20_de
-              text_color: 0xF8FAFC
+              styles: [t_value]
+          - label:
+              x: 253
+              y: 273
+              width: 112
+              text: "Warmwasser"
+              styles: [t_caption]
+              text_color: 0xFB923C
+          - label:
+              x: 256
+              y: 293
+              text: "\U000F0E02"
+              styles: [t_icon_sm]
+              text_color: 0x64748B
           - label:
               id: val_wp_ruecklauf
-              x: 253
-              y: 284
-              width: 112
-              text_align: center
+              x: 274
+              y: 292
+              width: 91
               text: "Rücklauf"
-              text_font: montserrat_14_de
-              text_color: 0x94A3B8
+              styles: [t_caption]
+              text_align: left
+              text_color: 0x64748B
 
           # ── Wires ────────────────────────────────────────────
           # Declared before the arrows so the arrows are drawn on top of them.
@@ -696,8 +915,8 @@ lvgl:
           - line:
               id: line_pv_einspeisung
               points:
-                - 102, 18
-                - 128, 18
+                - 102, 28
+                - 128, 28
               line_color: 0x17452C
               line_width: 2
               line_rounded: true
@@ -732,7 +951,7 @@ lvgl:
           - line:
               id: line_haus_wp
               points:
-                - 187, 186
+                - 187, 190
                 - 187, 224
               line_color: 0x4A2C11
               line_width: 2
@@ -741,7 +960,7 @@ lvgl:
           - line:
               id: line_haus_buzz
               points:
-                - 150, 186
+                - 150, 190
                 - 88, 226
               line_color: 0x322A4D
               line_width: 2
