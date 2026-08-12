@@ -39,9 +39,8 @@
 
 - name: "Crowpanel Energie Historie"
   unique_id: crowpanel_energie_historie
-  # A table scan over long-term statistics, and the underlying data only moves
-  # once an hour. No reason to run it more often than this.
-  scan_interval: 1800
+  # No polling interval here — see the note on polling below. There is no knob
+  # for it in this schema; adding one is a config error, not a slower sensor.
   column: "hist"
   value_template: "{{ value if value else '' }}"
   query: >-
@@ -102,13 +101,16 @@
 # because the *next* row is n+1 and therefore 11-(n+1) = 10-n months back —
 # which reaches '+0 months' on the last row, a form SQLite accepts.
 #
-# Polling. `scan_interval` is not part of the SQL integration's schema — it is
-# rejected as an invalid option — so this runs on the integration's own fixed
-# interval, which is far more often than the underlying data moves (long-term
-# statistics gain a row once an hour). If the table scan ever shows up in the
-# recorder's timings, turn polling off in the entity's settings and drive it
-# from an automation calling `homeassistant.update_entity` on a slow trigger,
-# rather than looking for a knob here.
+# Polling. `scan_interval` is not part of the SQL integration's schema. Home
+# Assistant rejects it outright — "'scan_interval' is an invalid option for
+# 'sql'" — so it is not a matter of taste: the key cannot be here at all. The
+# query therefore runs on the integration's own fixed interval, which is far
+# more often than the underlying data moves (long-term statistics gain a row
+# once an hour). If the table scan ever shows up in the recorder's timings,
+# turn polling off in the entity's own settings (Settings → Devices &
+# Services → Entities → this entity → Advanced → Enable polling for updates)
+# and drive it from an automation calling `homeassistant.update_entity` on a
+# slow trigger, rather than looking for a knob in this file.
 #
 # Units. `statistics.sum` is stored in whatever unit the statistic itself uses,
 # which is not the same for all three meters. The CASE on
