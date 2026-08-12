@@ -457,7 +457,7 @@ font:
     id: mdi_20
     size: 20
     glyphs:
-      - "\U000F0A72"  # solar-power
+      - "\U000F0599"  # weather-sunny
       - "\U000F192C"  # transmission-tower-export
       - "\U000F192D"  # transmission-tower-import
       - "\U000F1903"  # home-lightning-bolt
@@ -582,7 +582,7 @@ lvgl:
               id: icon_pv
               x: 32
               y: 6
-              text: "\U000F0A72"
+              text: "\U000F0599"
               styles: [t_icon]
               text_color: 0xFBBF24
           - label:

@@ -46,8 +46,9 @@
 # instead of silently collapsing to "this year so far".
 #
 # Icon codepoints are looked up in the cached MaterialDesign webfont, never
-# guessed — see CLAUDE.md. All five used here are already carried by mdi_20 in
-# live_panel.yaml, so this package adds no fonts.
+# guessed, and every one of them has to appear in mdi_20's `glyphs:` list in
+# live_panel.yaml or it draws as an empty box — see CLAUDE.md. This package
+# adds no font of its own; all five icons it uses are in that list.
 # ─────────────────────────────────────────────────────────────────────────────
 
 globals:
@@ -470,7 +471,7 @@ lvgl:
               x: 10
               y: 35
               width: 85
-              text: "\U000F0A72"
+              text: "\U000F0599"
               styles: [t_icon]
               text_color: 0xFBBF24
           - label:
@@ -627,8 +628,10 @@ lvgl:
 
           # ── Tile 4: Wärme ────────────────────────────────────
           # "Wärmepumpe" is 103 px at 14 px and does not fit an 85 px tile. The
-          # heat-pump glyph above it, and the live panel's own Wärmepumpe card
-          # carrying the same icon, say the rest.
+          # flame above it, and the live panel's own Wärmepumpe card carrying
+          # the same flame, say the rest. It used to be U+F1A43 heat-pump, which
+          # is a real codepoint but was never added to mdi_20's glyph list, so
+          # it drew as an empty box — see CLAUDE.md.
           - obj:
               x: 280
               y: 32
@@ -641,7 +644,7 @@ lvgl:
               x: 280
               y: 35
               width: 85
-              text: "\U000F1A43"
+              text: "\U000F0238"
               styles: [t_icon]
               text_color: 0xFB923C
           - label:
