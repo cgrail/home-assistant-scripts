@@ -25,12 +25,13 @@
 # therefore means "as good as it has ever been here", and a February day looks
 # as thin as it actually was — which a per-day scale could never show.
 #
-# Netzbezug is *derived*, not read: Verbrauch − (PV − Eingespeist). That is the
-# same identity the autarky percentages below are built on, so the tile can
-# never contradict them. It does inherit that identity's blind spot — PV that
-# went into the battery counts as covered before the battery has given it back,
-# so mid-morning the figure runs low. Swap in a daily grid-import entity here
-# if one ever exists; only the sensor block changes, the tile stays as is.
+# All five figures are read, none derived here. `sensor.taglicher_stromvebrauch`
+# is grid *import* despite its name — the Fronius smart meter only counts what
+# crosses the grid connection point — so it feeds the Netzbezug tile, and the
+# house total comes from `sensor.taglicher_hausverbrauch`, the template sensor
+# that does the (PV − Einspeisung) + Netzbezug arithmetic in Home Assistant.
+# Keeping that identity on the HA side means it is stated once, next to the
+# battery caveat it carries, rather than in every device that wants the number.
 #
 # The chart below is stacked: green is what the house covered itself
 # (PV minus Einspeisung), red is what it took from the grid. Bar height is the
@@ -53,7 +54,8 @@
 
 globals:
   # Today's figures in kWh, NaN sanitised once on the way in so no label or bar
-  # downstream needs an isnan guard.
+  # downstream needs an isnan guard. kwh_verbrauch_heute is the exception: it
+  # holds its last good reading instead of falling to zero — see its sensor.
   - id: kwh_pv_heute
     type: float
     restore_value: false
@@ -119,27 +121,14 @@ globals:
     initial_value: '""'
 
 script:
-  # Two things here need more than one sensor, so neither can live with a
-  # sensor: the Netzbezug tile is derived from three readings, and the four bars
-  # share one scale. Everything that *is* per-sensor — its own value label, its
-  # own icon tint — stays with the sensor.
+  # The four bars share one scale, so no single sensor can set its own bar
+  # without knowing the other three. Everything that is per-sensor — the value
+  # label and the icon tint — stays with the sensor; only the scale lives here.
   - id: refresh_heute
     then:
       - lambda: |-
-          // Netzbezug = what the house used minus what it covered itself.
-          const float eigen = id(kwh_pv_heute) - id(kwh_ein_heute);
-          float netz = id(kwh_verbrauch_heute) - eigen;
-          if (netz < 0.0f) netz = 0.0f;
-          id(kwh_netz_heute) = netz;
-
-          char buf[12];
-          snprintf(buf, sizeof(buf), "%.1f", netz);
-          lv_label_set_text(id(val_netz_heute), buf);
-          lv_obj_set_style_text_color(id(icon_netz_heute),
-              lv_color_hex(netz > 0.05f ? 0xF87171 : 0x475569), LV_PART_MAIN);
-
           const float v[4] = { id(kwh_pv_heute), id(kwh_ein_heute),
-                               netz, id(kwh_wp_heute) };
+                               id(kwh_netz_heute), id(kwh_wp_heute) };
           // A glitched reading would otherwise be written to flash and wreck
           // the scale permanently, so anything implausible is displayed but
           // never allowed to set a record.
@@ -322,20 +311,43 @@ sensor:
             args: ['id(kwh_ein_heute)']
       - script.execute: refresh_heute
 
-  # The house total for the day, and the only reading behind the Netzbezug tile
-  # that is not already on this card. Entity id really is spelled
-  # "stromvebrauch" in Home Assistant.
+  # Grid import, despite the name: a daily utility_meter over "Bezogene
+  # Wirkenergie", so on a sunny day it sits near zero while the house runs off
+  # the roof. Entity id really is spelled "stromvebrauch" in Home Assistant.
   - platform: homeassistant
-    id: taglicher_stromverbrauch
+    id: taglich_netzbezug
     entity_id: sensor.taglicher_stromvebrauch
     on_value:
-      - lambda: 'id(kwh_verbrauch_heute) = isnan(x) ? 0.0f : x;'
+      - lambda: |-
+          id(kwh_netz_heute) = isnan(x) ? 0.0f : x;
+          lv_obj_set_style_text_color(id(icon_netz_heute),
+              lv_color_hex(id(kwh_netz_heute) > 0.05f ? 0xF87171 : 0x475569), LV_PART_MAIN);
       - lvgl.label.update:
-          id: val_verbrauch_heute
+          id: val_netz_heute
           text:
-            format: "%.1f kWh"
-            args: ['id(kwh_verbrauch_heute)']
+            format: "%.1f"
+            args: ['id(kwh_netz_heute)']
       - script.execute: refresh_heute
+
+  # The house total — see home-assistant/template_sensors_crowpanel.yaml. That
+  # sensor deliberately goes *unavailable* rather than understate the total when
+  # one of its three terms is missing, so a NaN here is a "keep what you have",
+  # not a zero: writing 0.0 kWh onto the wall is exactly the plausible lie it
+  # went unavailable to avoid. It feeds no bar, so it needs no refresh_heute.
+  - platform: homeassistant
+    id: taglicher_hausverbrauch
+    entity_id: sensor.taglicher_hausverbrauch
+    on_value:
+      - if:
+          condition:
+            lambda: 'return !isnan(x);'
+          then:
+            - lambda: 'id(kwh_verbrauch_heute) = x;'
+            - lvgl.label.update:
+                id: val_verbrauch_heute
+                text:
+                  format: "%.1f kWh"
+                  args: ['id(kwh_verbrauch_heute)']
 
   - platform: homeassistant
     id: tag_wp
