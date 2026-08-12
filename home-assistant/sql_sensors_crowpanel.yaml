@@ -11,7 +11,7 @@
 # serialises an array into one state string and the ESPHome device parses it
 # inline with a C++ lambda.
 #
-# State format — up to 12 entries, oldest month first, whole kWh:
+# State format — **always exactly 12 entries**, oldest month first, whole kWh:
 #
 #     "412/180,530/150,610/120,...,388/95"
 #      ^^^      ^^^
@@ -21,7 +21,17 @@
 # ~120 characters, comfortably inside Home Assistant's 255-character state
 # limit. That limit is why the values are rounded to integers and why the month
 # names are not transmitted — the panel derives those from its own clock, with
-# the newest entry being the current month.
+# the last entry being the current month.
+#
+# The twelve slots are generated first and the meter data is joined *onto* them,
+# which is the whole point of the `slots` CTE. Grouping the meters and hoping
+# for twelve rows does not survive contact with reality: a month in which any
+# one of the three meters has no statistics — a meter added later, an
+# integration reloaded under a new entity id, a gap in the recorder — produced a
+# NULL, `group_concat` dropped it, and the panel silently showed a shorter
+# series. That is what turned a rolling twelve months into "this year so far".
+# Now such a month arrives as "0/0": an empty slot in a full twelve-month axis,
+# which reads as missing data instead of as a different window.
 #
 # Reads the `statistics` table: hourly long-term statistics, which the recorder
 # keeps forever. Not `statistics_short_term`, which is purged.
@@ -35,7 +45,17 @@
   column: "hist"
   value_template: "{{ value if value else '' }}"
   query: >-
-    WITH mon AS (
+    WITH RECURSIVE
+    slots(n, ym) AS (
+      SELECT 0, strftime('%Y-%m', 'now', 'localtime', 'start of month', '-11 months')
+      UNION ALL
+      SELECT n + 1,
+             strftime('%Y-%m', 'now', 'localtime', 'start of month',
+                      printf('%+d months', n - 10))
+      FROM slots
+      WHERE n < 11
+    ),
+    mon AS (
       SELECT
         sm.statistic_id AS sid,
         strftime('%Y-%m', s.start_ts, 'unixepoch', 'localtime') AS ym,
@@ -53,24 +73,34 @@
               'sensor.smart_meter_ts_5ka_3_real_energy_consumed')
         AND s.start_ts >= strftime('%s', date('now', 'localtime', 'start of month', '-11 months'))
       GROUP BY sid, ym
+    ),
+    agg AS (
+      SELECT
+        ym,
+        MAX(CASE WHEN sid = 'sensor.fronius_total_energy' THEN kwh END) AS pv_kwh,
+        MAX(CASE WHEN sid = 'sensor.smart_meter_ts_5ka_3_real_energy_produced' THEN kwh END) AS out_kwh,
+        MAX(CASE WHEN sid = 'sensor.smart_meter_ts_5ka_3_real_energy_consumed' THEN kwh END) AS in_kwh
+      FROM mon
+      GROUP BY ym
     )
     SELECT group_concat(v, ',') AS hist FROM (
       SELECT
-        ym,
-        CAST(ROUND(
-               MAX(CASE WHEN sid = 'sensor.fronius_total_energy' THEN kwh END)
-             - MAX(CASE WHEN sid = 'sensor.smart_meter_ts_5ka_3_real_energy_produced' THEN kwh END)
-             ) AS INT)
+        slots.n,
+        CAST(ROUND(MAX(0, COALESCE(agg.pv_kwh, 0) - COALESCE(agg.out_kwh, 0))) AS INT)
         || '/' ||
-        CAST(ROUND(
-               MAX(CASE WHEN sid = 'sensor.smart_meter_ts_5ka_3_real_energy_consumed' THEN kwh END)
-             ) AS INT) AS v
-      FROM mon
-      GROUP BY ym
-      ORDER BY ym
+        CAST(ROUND(COALESCE(agg.in_kwh, 0)) AS INT) AS v
+      FROM slots
+      LEFT JOIN agg ON agg.ym = slots.ym
+      ORDER BY slots.n
     );
 
 # ── Notes on the query ───────────────────────────────────────────────────────
+#
+# The slot walk. `slots` counts n = 0…11 and turns each into a '%Y-%m' string,
+# so the join key is a month name rather than an offset and month lengths never
+# enter into it. The step modifier is built with `printf('%+d months', n - 10)`
+# because the *next* row is n+1 and therefore 11-(n+1) = 10-n months back —
+# which reaches '+0 months' on the last row, a form SQLite accepts.
 #
 # Polling. `scan_interval` is not part of the SQL integration's schema — it is
 # rejected as an invalid option — so this runs on the integration's own fixed
@@ -88,17 +118,18 @@
 # Month totals. `MAX(sum) - MIN(sum)` misses whatever accumulated inside the
 # month's *first* hour, because the first row of the month already carries that
 # hour's increment. The error is under one hour of energy on a monthly total —
-# invisible at 64 px of bar height, and not worth a boundary lookup for a wall
+# invisible at 60 px of bar height, and not worth a boundary lookup for a wall
 # display.
 #
-# Gaps. If one of the three meters has no rows for a month, that month's `v` is
-# NULL and group_concat drops it. The panel pads the series from the left rather
-# than assuming entry 0 is the oldest slot, so a gap costs a bar but never
-# shifts the month labels off the data.
+# Time zones. `strftime('%s', date(...))` reads a local date back as if it were
+# UTC, so the lower bound sits the UTC offset past local midnight and the oldest
+# month loses its first hour or two. Harmless here, and the fixed slot list also
+# makes the opposite error harmless: rows that spill into a thirteenth `ym` just
+# find no slot to join to and are dropped.
 #
 # Ordering. SQLite honours the inner ORDER BY when feeding group_concat. On
 # SQLite 3.44+ this can be stated outright as
-# `group_concat(v, ',' ORDER BY ym)`; the subquery form above also works on
+# `group_concat(v, ',' ORDER BY n)`; the subquery form above also works on
 # older versions, which is why it is written this way.
 #
 # Schema. `start_ts` (REAL, epoch seconds) is the column on Home Assistant

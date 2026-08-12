@@ -2,20 +2,35 @@
 # History card — today in proportion, and twelve months of autarky
 #
 # Layout (card local coordinates, 375 x 220):
-#   y   6 …  21   "HEUTE" ......................................... "kWh"
-#   y  24 …  96   four tiles: PV | Eingespeist | Netzbezug | Wärme
-#   y 102         hairline rule
-#   y 108 … 123   "12 MONATE" ......... Autark  Monat NN %  Gesamt NN %
-#   y 128 … 192   plot area, baseline 192, 64 px of headroom
-#   y 196 … 211   month labels
+#   y   4 …  28   "HEUTE" ................. [icon] Verbrauch    NN.N kWh
+#   y  32 … 104   four tiles: PV | Eingespeist | Netzbezug | Wärme
+#   y 110         hairline rule
+#   y 114 … 131   "12 MONATE" ......... Autark  Monat NN %  Gesamt NN %
+#   y 136 … 196   plot area, baseline 196, 60 px of headroom
+#   y 197         baseline rule
+#   y 200 … 215   month labels
+#
+# The day's **total consumption** is the headline: it sits alone on the header
+# line, right-aligned to the card edge, carrying the same blue home glyph the
+# live panel's Haus node uses — so "the whole house" looks the same on both
+# halves of the screen. The four tiles below it are the breakdown.
 #
 # The tiles repeat the icon / big value / caption rhythm the live panel uses, so
-# the eye finds the number in the same place here as it does over there. What
-# they add is the bar underneath: all four are drawn against **one shared
-# scale**, the best single-day figure this panel has ever seen, kept in flash.
-# A full PV bar therefore means "as good as it has ever been here", and a
-# February day looks as thin as it actually was — which a per-day scale could
-# never show.
+# the eye finds the number in the same place here as it does over there. Each
+# number states its own unit: a 12 px dim "kWh" parked at a fixed x with the
+# digits right-aligned into it, so the decimal points line up down the row and
+# a two-digit day does not shove the unit sideways. What the tiles add is the
+# bar underneath: all four are drawn against **one shared scale**, the best
+# single-day figure this panel has ever seen, kept in flash. A full PV bar
+# therefore means "as good as it has ever been here", and a February day looks
+# as thin as it actually was — which a per-day scale could never show.
+#
+# Netzbezug is *derived*, not read: Verbrauch − (PV − Eingespeist). That is the
+# same identity the autarky percentages below are built on, so the tile can
+# never contradict them. It does inherit that identity's blind spot — PV that
+# went into the battery counts as covered before the battery has given it back,
+# so mid-morning the figure runs low. Swap in a daily grid-import entity here
+# if one ever exists; only the sensor block changes, the tile stays as is.
 #
 # The chart below is stacked: green is what the house covered itself
 # (PV minus Einspeisung), red is what it took from the grid. Bar height is the
@@ -23,19 +38,30 @@
 # month's autarky. ESPHome's LVGL has no chart widget, so each segment is a
 # plain obj whose y and height the lambda sets.
 #
+# The series is always twelve slots wide — the SQL sensor emits "0/0" for a
+# month it has no data for rather than dropping it (see
+# home-assistant/sql_sensors_crowpanel.yaml), so slot 11 is *always* the current
+# month and every label sits over its own data. A month with nothing behind it
+# keeps its label at the dimmest grey: the axis stays a full twelve months wide
+# instead of silently collapsing to "this year so far".
+#
 # Icon codepoints are looked up in the cached MaterialDesign webfont, never
-# guessed — see CLAUDE.md. All four used here are already carried by mdi_20 in
+# guessed — see CLAUDE.md. All five used here are already carried by mdi_20 in
 # live_panel.yaml, so this package adds no fonts.
 # ─────────────────────────────────────────────────────────────────────────────
 
 globals:
-  # Today's four figures in kWh, NaN sanitised once on the way in so no label
-  # or bar downstream needs an isnan guard.
+  # Today's figures in kWh, NaN sanitised once on the way in so no label or bar
+  # downstream needs an isnan guard.
   - id: kwh_pv_heute
     type: float
     restore_value: false
     initial_value: '0'
   - id: kwh_ein_heute
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: kwh_verbrauch_heute
     type: float
     restore_value: false
     initial_value: '0'
@@ -92,14 +118,27 @@ globals:
     initial_value: '""'
 
 script:
-  # The four bars share one scale, so no single sensor can set its own bar
-  # without knowing the other three. Everything that is per-sensor — the value
-  # label and the icon tint — stays with the sensor; only the scale lives here.
+  # Two things here need more than one sensor, so neither can live with a
+  # sensor: the Netzbezug tile is derived from three readings, and the four bars
+  # share one scale. Everything that *is* per-sensor — its own value label, its
+  # own icon tint — stays with the sensor.
   - id: refresh_heute
     then:
       - lambda: |-
+          // Netzbezug = what the house used minus what it covered itself.
+          const float eigen = id(kwh_pv_heute) - id(kwh_ein_heute);
+          float netz = id(kwh_verbrauch_heute) - eigen;
+          if (netz < 0.0f) netz = 0.0f;
+          id(kwh_netz_heute) = netz;
+
+          char buf[12];
+          snprintf(buf, sizeof(buf), "%.1f", netz);
+          lv_label_set_text(id(val_netz_heute), buf);
+          lv_obj_set_style_text_color(id(icon_netz_heute),
+              lv_color_hex(netz > 0.05f ? 0xF87171 : 0x475569), LV_PART_MAIN);
+
           const float v[4] = { id(kwh_pv_heute), id(kwh_ein_heute),
-                               id(kwh_netz_heute), id(kwh_wp_heute) };
+                               netz, id(kwh_wp_heute) };
           // A glitched reading would otherwise be written to flash and wreck
           // the scale permanently, so anything implausible is displayed but
           // never allowed to set a record.
@@ -147,8 +186,8 @@ script:
   - id: refresh_history_chart
     then:
       - lambda: |-
-          const int BASE = 192;   // baseline, card local
-          const int MAXH = 64;    // headroom above it
+          const int BASE = 196;   // baseline, card local
+          const int MAXH = 60;    // headroom above it
 
           lv_obj_t *green[12] = {
             id(hist_eigen_0),  id(hist_eigen_1),  id(hist_eigen_2),  id(hist_eigen_3),
@@ -163,7 +202,7 @@ script:
             id(hist_lbl_4),    id(hist_lbl_5),    id(hist_lbl_6),    id(hist_lbl_7),
             id(hist_lbl_8),    id(hist_lbl_9),    id(hist_lbl_10),   id(hist_lbl_11) };
 
-          // "eigen/netz,eigen/netz,..." — oldest first, up to twelve entries.
+          // "eigen/netz,eigen/netz,..." — oldest first, twelve entries.
           const std::string &s = id(hist_csv);
           static float e[12], g[12];
           int n = 0;
@@ -181,19 +220,23 @@ script:
             pos = comma + 1;
           }
 
-          // A short series pads on the *left*, so the newest entry is always the
-          // rightmost slot. Losing a month costs a bar, never an alignment.
+          // The sensor pads the series itself, so this is normally 0. A short
+          // string — a stale state, a sensor that has not answered yet — pads on
+          // the *left*, so the newest entry stays the rightmost slot and losing
+          // an entry costs a bar, never an alignment.
           const int first = 12 - n;
 
           float scale = 1.0f;
           for (int k = 0; k < n; k++)
             if (e[k] + g[k] > scale) scale = e[k] + g[k];
 
+          static float slot_total[12];
           for (int i = 0; i < 12; i++) {
             const int k = i - first;
             int h_total = 0, h_eigen = 0;
+            slot_total[i] = k >= 0 ? e[k] + g[k] : 0.0f;
             if (k >= 0) {
-              const float total = e[k] + g[k];
+              const float total = slot_total[i];
               h_total = (int) lroundf(MAXH * total / scale);
               h_eigen = total > 0.0f ? (int) lroundf(h_total * e[k] / total) : 0;
             }
@@ -222,21 +265,20 @@ script:
 
           // Slot 11 is the current month, counting backwards from there. It is
           // still running and will keep growing, so its label is the bright one.
+          // A slot with no data keeps its label at the dimmest grey rather than
+          // losing it: the axis is a full twelve months wide either way.
           auto now = id(time_comp).now();
           if (now.is_valid()) {
             static const char *MON[12] = { "Jan", "Feb", "M\xc3\xa4r", "Apr",
                                            "Mai", "Jun", "Jul", "Aug",
                                            "Sep", "Okt", "Nov", "Dez" };
             for (int i = 0; i < 12; i++) {
-              if (i < first) {
-                lv_label_set_text(lbl[i], "");
-                continue;
-              }
               int m = (now.month - 1) - (11 - i);
               while (m < 0) m += 12;
               lv_label_set_text(lbl[i], MON[m % 12]);
-              lv_obj_set_style_text_color(lbl[i],
-                  lv_color_hex(i == 11 ? 0xE2E8F0 : 0x64748B), LV_PART_MAIN);
+              const uint32_t col = i == 11 ? 0xE2E8F0
+                                           : (slot_total[i] > 0.0f ? 0x64748B : 0x334155);
+              lv_obj_set_style_text_color(lbl[i], lv_color_hex(col), LV_PART_MAIN);
             }
           }
 
@@ -279,20 +321,19 @@ sensor:
             args: ['id(kwh_ein_heute)']
       - script.execute: refresh_heute
 
-  # Entity id really is spelled "stromvebrauch" in Home Assistant.
+  # The house total for the day, and the only reading behind the Netzbezug tile
+  # that is not already on this card. Entity id really is spelled
+  # "stromvebrauch" in Home Assistant.
   - platform: homeassistant
     id: taglicher_stromverbrauch
     entity_id: sensor.taglicher_stromvebrauch
     on_value:
-      - lambda: |-
-          id(kwh_netz_heute) = isnan(x) ? 0.0f : x;
-          lv_obj_set_style_text_color(id(icon_netz_heute),
-              lv_color_hex(id(kwh_netz_heute) > 0.05f ? 0xF87171 : 0x475569), LV_PART_MAIN);
+      - lambda: 'id(kwh_verbrauch_heute) = isnan(x) ? 0.0f : x;'
       - lvgl.label.update:
-          id: val_netz_heute
+          id: val_verbrauch_heute
           text:
-            format: "%.1f"
-            args: ['id(kwh_netz_heute)']
+            format: "%.1f kWh"
+            args: ['id(kwh_verbrauch_heute)']
       - script.execute: refresh_heute
 
   - platform: homeassistant
@@ -378,27 +419,48 @@ lvgl:
         pad_all: 0
         scrollable: false
         widgets:
-          # ── HEUTE header ─────────────────────────────────────
-          # The unit is stated once here so the four tiles can spend their
-          # width on the number instead of repeating "kWh" four times.
+          # ── HEUTE header, with the day's total ───────────────
+          # "HEUTE" and the caption sit 8 px lower than the 20 px value so all
+          # three share a baseline (ascender 20 vs 12).
           - label:
               x: 12
-              y: 6
+              y: 12
               text: "HEUTE"
               styles: [t_caption_sm]
               text_align: left
           - label:
-              x: 263
-              y: 6
-              width: 100
-              text: "kWh"
+              x: 162
+              y: 4
+              width: 20
+              text: "\U000F1903"
+              styles: [t_icon]
+              text_color: 0x38BDF8
+          - label:
+              x: 186
+              y: 12
+              width: 68
+              text: "Verbrauch"
               styles: [t_caption_sm]
+              text_align: left
+              text_color: 0x38BDF8
+          # Right-aligned to the card's own margin: the total is the one number
+          # on this card that is a total, so it gets the edge to itself. Unit in
+          # the same label, because nothing has to line up underneath it. 105 px
+          # is sized for "100.0 kWh" (103 px), not for today's reading — a label
+          # cut to the typical value wraps onto a second line the day it grows.
+          - label:
+              id: val_verbrauch_heute
+              x: 258
+              y: 4
+              width: 105
+              text: "0.0 kWh"
+              styles: [t_value]
               text_align: right
 
           # ── Tile 1: PV ───────────────────────────────────────
           - obj:
               x: 10
-              y: 24
+              y: 32
               width: 85
               height: 72
               styles: [card, card_solar]
@@ -406,21 +468,30 @@ lvgl:
           - label:
               id: icon_pv_heute
               x: 10
-              y: 27
+              y: 35
               width: 85
               text: "\U000F0A72"
               styles: [t_icon]
               text_color: 0xFBBF24
           - label:
               id: val_pv_heute
-              x: 10
-              y: 47
-              width: 85
+              x: 11
+              y: 55
+              width: 50
               text: "0.0"
               styles: [t_value]
+              text_align: right
+          - label:
+              x: 64
+              y: 63
+              width: 29
+              text: "kWh"
+              styles: [t_caption_sm]
+              text_align: left
+              text_color: 0x64748B
           - label:
               x: 10
-              y: 70
+              y: 78
               width: 85
               text: "PV"
               styles: [t_caption]
@@ -428,7 +499,7 @@ lvgl:
           - bar:
               id: bar_pv_heute
               x: 18
-              y: 89
+              y: 97
               width: 69
               height: 4
               min_value: 0
@@ -445,7 +516,7 @@ lvgl:
           # ── Tile 2: Eingespeist ──────────────────────────────
           - obj:
               x: 100
-              y: 24
+              y: 32
               width: 85
               height: 72
               styles: [card, card_export]
@@ -453,21 +524,30 @@ lvgl:
           - label:
               id: icon_ein_heute
               x: 100
-              y: 27
+              y: 35
               width: 85
               text: "\U000F192C"
               styles: [t_icon]
               text_color: 0x4ADE80
           - label:
               id: val_ein_heute
-              x: 100
-              y: 47
-              width: 85
+              x: 101
+              y: 55
+              width: 50
               text: "0.0"
               styles: [t_value]
+              text_align: right
+          - label:
+              x: 154
+              y: 63
+              width: 29
+              text: "kWh"
+              styles: [t_caption_sm]
+              text_align: left
+              text_color: 0x64748B
           - label:
               x: 100
-              y: 70
+              y: 78
               width: 85
               text: "Eingespeist"
               styles: [t_caption]
@@ -475,7 +555,7 @@ lvgl:
           - bar:
               id: bar_ein_heute
               x: 108
-              y: 89
+              y: 97
               width: 69
               height: 4
               min_value: 0
@@ -492,7 +572,7 @@ lvgl:
           # ── Tile 3: Netzbezug ────────────────────────────────
           - obj:
               x: 190
-              y: 24
+              y: 32
               width: 85
               height: 72
               styles: [card, card_grid]
@@ -500,21 +580,30 @@ lvgl:
           - label:
               id: icon_netz_heute
               x: 190
-              y: 27
+              y: 35
               width: 85
               text: "\U000F192D"
               styles: [t_icon]
               text_color: 0xF87171
           - label:
               id: val_netz_heute
-              x: 190
-              y: 47
-              width: 85
+              x: 191
+              y: 55
+              width: 50
               text: "0.0"
               styles: [t_value]
+              text_align: right
+          - label:
+              x: 244
+              y: 63
+              width: 29
+              text: "kWh"
+              styles: [t_caption_sm]
+              text_align: left
+              text_color: 0x64748B
           - label:
               x: 190
-              y: 70
+              y: 78
               width: 85
               text: "Netzbezug"
               styles: [t_caption]
@@ -522,7 +611,7 @@ lvgl:
           - bar:
               id: bar_netz_heute
               x: 198
-              y: 89
+              y: 97
               width: 69
               height: 4
               min_value: 0
@@ -542,7 +631,7 @@ lvgl:
           # carrying the same icon, say the rest.
           - obj:
               x: 280
-              y: 24
+              y: 32
               width: 85
               height: 72
               styles: [card, card_heat]
@@ -550,21 +639,30 @@ lvgl:
           - label:
               id: icon_wp_heute
               x: 280
-              y: 27
+              y: 35
               width: 85
               text: "\U000F1A43"
               styles: [t_icon]
               text_color: 0xFB923C
           - label:
               id: val_wp_heute
-              x: 280
-              y: 47
-              width: 85
+              x: 281
+              y: 55
+              width: 50
               text: "0.0"
               styles: [t_value]
+              text_align: right
+          - label:
+              x: 334
+              y: 63
+              width: 29
+              text: "kWh"
+              styles: [t_caption_sm]
+              text_align: left
+              text_color: 0x64748B
           - label:
               x: 280
-              y: 70
+              y: 78
               width: 85
               text: "Wärme"
               styles: [t_caption]
@@ -572,7 +670,7 @@ lvgl:
           - bar:
               id: bar_wp_heute
               x: 288
-              y: 89
+              y: 97
               width: 69
               height: 4
               min_value: 0
@@ -589,7 +687,7 @@ lvgl:
           # ── Rule ─────────────────────────────────────────────
           - obj:
               x: 12
-              y: 102
+              y: 110
               width: 351
               height: 1
               bg_color: 0x1E293B
@@ -600,83 +698,101 @@ lvgl:
 
           # ── Chart header ─────────────────────────────────────
           # The two percentages are green because green is what they measure:
-          # they double as the legend for the lower half of every bar.
+          # they double as the legend for the lower half of every bar. They are
+          # read from across the room, so they get 14 px; the two words that
+          # only label them stay at 12 px, dropped 2 px onto the same baseline.
           - label:
               x: 12
-              y: 108
+              y: 116
               text: "12 MONATE"
               styles: [t_caption_sm]
               text_align: left
           - label:
-              x: 146
-              y: 108
+              x: 114
+              y: 116
               text: "Autark"
               styles: [t_caption_sm]
               text_align: left
               text_color: 0x64748B
-          # Both boxes are sized for "100 %", not for a typical value: the
-          # digits are proportional, so "88" is wider than "71" and a box cut
-          # to today's number would clip on some other day.
+          # Both boxes are sized for "100 %" plus a few pixels of slack, not for
+          # a typical value: the digits are proportional, so "88" is wider than
+          # "71", and a box cut to today's number wraps onto a second line on
+          # some other day. "Monat 100 %" does happen in a good summer month.
           - label:
               id: lbl_autark_monat
-              x: 193
-              y: 108
-              width: 78
+              x: 161
+              y: 114
+              width: 94
               text: "Monat -- %"
-              styles: [t_caption_sm]
+              styles: [t_caption]
               text_align: right
               text_color: 0x4ADE80
           - label:
               id: lbl_autark_gesamt
-              x: 277
-              y: 108
-              width: 86
+              x: 259
+              y: 114
+              width: 104
               text: "Gesamt -- %"
-              styles: [t_caption_sm]
+              styles: [t_caption]
               text_align: right
               text_color: 0x4ADE80
 
           # ── Chart ────────────────────────────────────────────
           # Twelve columns at pitch 29 starting at x=16, 23 px wide. Baseline is
-          # y=192 with 64 px of headroom; y and height are set in
+          # y=196 with 60 px of headroom; y and height are set in
           # refresh_history_chart, so the values here are placeholders.
-          - obj:  { id: hist_eigen_0,  x: 16,  y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_0,   x: 16,  y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_1,  x: 45,  y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_1,   x: 45,  y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_2,  x: 74,  y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_2,   x: 74,  y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_3,  x: 103, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_3,   x: 103, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_4,  x: 132, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_4,   x: 132, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_5,  x: 161, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_5,   x: 161, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_6,  x: 190, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_6,   x: 190, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_7,  x: 219, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_7,   x: 219, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_8,  x: 248, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_8,   x: 248, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_9,  x: 277, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_9,   x: 277, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_10, x: 306, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_10,  x: 306, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_11, x: 335, y: 191, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_11,  x: 335, y: 190, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_0,  x: 16,  y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_0,   x: 16,  y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_1,  x: 45,  y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_1,   x: 45,  y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_2,  x: 74,  y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_2,   x: 74,  y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_3,  x: 103, y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_3,   x: 103, y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_4,  x: 132, y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_4,   x: 132, y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_5,  x: 161, y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_5,   x: 161, y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_6,  x: 190, y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_6,   x: 190, y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_7,  x: 219, y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_7,   x: 219, y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_8,  x: 248, y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_8,   x: 248, y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_9,  x: 277, y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_9,   x: 277, y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_10, x: 306, y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_10,  x: 306, y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_11, x: 335, y: 195, width: 23, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_11,  x: 335, y: 194, width: 23, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+
+          # ── Baseline ─────────────────────────────────────────
+          # The bars stand on this rather than floating over the card, which is
+          # what makes a one-pixel February bar read as "almost nothing" instead
+          # of as a rendering glitch.
+          - obj:
+              x: 12
+              y: 197
+              width: 351
+              height: 1
+              bg_color: 0x1E293B
+              border_width: 0
+              radius: 0
+              pad_all: 0
+              scrollable: false
 
           # ── Month labels ─────────────────────────────────────
           # 12 px, not 14: "Aug" is 29 px at 14 px and would touch its
           # neighbour at this pitch, but only 25 px at 12 px.
-          - label: { id: hist_lbl_0,  x: 13,  y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_1,  x: 42,  y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_2,  x: 71,  y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_3,  x: 100, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_4,  x: 129, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_5,  x: 158, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_6,  x: 187, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_7,  x: 216, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_8,  x: 245, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_9,  x: 274, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_10, x: 303, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
-          - label: { id: hist_lbl_11, x: 332, y: 196, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_0,  x: 13,  y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_1,  x: 42,  y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_2,  x: 71,  y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_3,  x: 100, y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_4,  x: 129, y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_5,  x: 158, y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_6,  x: 187, y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_7,  x: 216, y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_8,  x: 245, y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_9,  x: 274, y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_10, x: 303, y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
+          - label: { id: hist_lbl_11, x: 332, y: 200, width: 29, text: "", styles: [t_caption_sm], text_color: 0x64748B }
