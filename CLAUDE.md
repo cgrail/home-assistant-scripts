@@ -65,7 +65,7 @@ The cached fonts under `esphome-builder/.esphome/font/` can be read with the `fr
 
 Both devices connect to HA via the native API (`api:` key). Sensor entity IDs are referenced directly in each YAML. The files under `home-assistant/` are included from HA's `configuration.yaml`; each one's header says how, and they are not all included the same way:
 
-- `template_sensors_crowpanel.yaml` — value of `template:`. Provides `sensor.zuzenhausen_abfahrten_esphome` (next departures serialised as JSON, parsed inline by a C++ lambda on the device) and `sensor.taglicher_hausverbrauch`.
+- `template_sensors_crowpanel.yaml` — a **package**, so it carries its own `template:` key. Provides `sensor.taglicher_hausverbrauch`. A package entry must be a mapping of top-level keys: included as the bare list it used to be, HA says *"expected a dictionary. Package will not be initialized"* and the sensor is simply missing.
 - `sql_sensors_crowpanel.yaml` — value of `sql:`. Twelve months of energy history as one CSV state string.
 - `battery_energy_crowpanel.yaml` — a **package** (`homeassistant: packages:`), because it needs two top-level keys: `sensor:` for two Riemann-sum integrations of the SolarNet battery power sensors, and `utility_meter:` for the daily cycle on each.
 

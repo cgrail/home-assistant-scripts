@@ -1,24 +1,22 @@
-- sensor:
-    - name: "Zuzenhausen Abfahrten ESPHome"
-      unique_id: zuzenhausen_abfahrten_esphome
-      state: >
-        {% set deps = state_attr('sensor.zuzenhausen_departures', 'next_departures') %}
-        {% if deps %}
-          {% set ns = namespace(result=[]) %}
-          {% for dep in (deps[:2]) %}
-            {% set ns.result = ns.result + [{
-              'departure_current': dep.departure_current | default('--'),
-              'delay': dep.delay | default(0),
-              'richtung': (dep.destination | default('--')).split(',')[0]
-            }] %}
-          {% endfor %}
-          {{ ns.result | tojson }}
-        {% else %}
-          []
-        {% endif %}
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Täglicher Hausverbrauch — what the house actually used today, in kWh.
+#
+# This file is a **package**, so it carries its own `template:` key and is
+# included from configuration.yaml as:
+#
+#     homeassistant:
+#       packages:
+#         crowpanel_template: !include home-assistant/template_sensors_crowpanel.yaml
+#
+# not as the value of `template:`. The two are not interchangeable: a package
+# entry must be a mapping of top-level config keys, so handing it the bare list
+# this file used to start with fails with "expected a dictionary. Package will
+# not be initialized" — and the sensor is then simply absent, with the panel
+# holding its last value and nothing else to say why. Included the other way
+# round (`template: !include`) the `template:` key below would end up nested
+# inside itself. Same shape as battery_energy_crowpanel.yaml; note that
+# sql_sensors_crowpanel.yaml is *not* a package and is still included as the
+# value of `sql:`.
 #
 # The Fronius smart meter only counts what crosses the grid connection point.
 # `sensor.taglicher_stromvebrauch` is a daily utility_meter over "Bezogene
@@ -59,37 +57,39 @@
 # from its own `unit_of_measurement` rather than assumed — the same defence
 # sql_sensors_crowpanel.yaml uses on the statistics table.
 # ─────────────────────────────────────────────────────────────────────────────
-- sensor:
-    - name: "Täglicher Hausverbrauch"
-      unique_id: taglicher_hausverbrauch
-      unit_of_measurement: "kWh"
-      device_class: energy
-      state_class: total_increasing
-      icon: mdi:home-lightning-bolt
-      # A missing term does not look missing — it just skews the total, which
-      # reads like a real number. Going unavailable instead lets the panel hold
-      # its last value rather than draw a plausible lie. The battery meters
-      # count here as much as the rest: dropping them is exactly the bug this
-      # sensor was fixed for, so their absence must not fail quiet either.
-      availability: >
-        {{ has_value('sensor.tagliche_pv_produktion')
-           and has_value('sensor.taglich_eingespeist')
-           and has_value('sensor.taglich_batterie_geladen')
-           and has_value('sensor.taglich_batterie_entladen')
-           and has_value('sensor.taglicher_stromvebrauch') }}
-      state: >
-        {% set ns = namespace(kwh = 0.0) %}
-        {% for entity, sign in [
-             ('sensor.tagliche_pv_produktion',        1),
-             ('sensor.taglich_eingespeist',          -1),
-             ('sensor.taglich_batterie_geladen',     -1),
-             ('sensor.taglich_batterie_entladen',     1),
-             ('sensor.taglicher_stromvebrauch',       1)] %}
-          {% set unit = state_attr(entity, 'unit_of_measurement') %}
-          {% set scale = 0.001 if unit == 'Wh' else (1000.0 if unit == 'MWh' else 1.0) %}
-          {% set ns.kwh = ns.kwh + sign * (states(entity) | float(0)) * scale %}
-        {% endfor %}
-        {# The five meters do not reset in the same instant at midnight, so for
-           a moment the sum can go negative. Clamped, because `total_increasing`
-           would read a negative as a meter reset. #}
-        {{ [ns.kwh, 0.0] | max | round(2) }}
+template:
+  - sensor:
+      - name: "Täglicher Hausverbrauch"
+        unique_id: taglicher_hausverbrauch
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:home-lightning-bolt
+        # A missing term does not look missing — it just skews the total, which
+        # reads like a real number. Going unavailable instead lets the panel
+        # hold its last value rather than draw a plausible lie. The battery
+        # meters count here as much as the rest: dropping them is exactly the
+        # bug this sensor was fixed for, so their absence must not fail quiet
+        # either.
+        availability: >
+          {{ has_value('sensor.tagliche_pv_produktion')
+             and has_value('sensor.taglich_eingespeist')
+             and has_value('sensor.taglich_batterie_geladen')
+             and has_value('sensor.taglich_batterie_entladen')
+             and has_value('sensor.taglicher_stromvebrauch') }}
+        state: >
+          {% set ns = namespace(kwh = 0.0) %}
+          {% for entity, sign in [
+               ('sensor.tagliche_pv_produktion',        1),
+               ('sensor.taglich_eingespeist',          -1),
+               ('sensor.taglich_batterie_geladen',     -1),
+               ('sensor.taglich_batterie_entladen',     1),
+               ('sensor.taglicher_stromvebrauch',       1)] %}
+            {% set unit = state_attr(entity, 'unit_of_measurement') %}
+            {% set scale = 0.001 if unit == 'Wh' else (1000.0 if unit == 'MWh' else 1.0) %}
+            {% set ns.kwh = ns.kwh + sign * (states(entity) | float(0)) * scale %}
+          {% endfor %}
+          {# The five meters do not reset in the same instant at midnight, so
+             for a moment the sum can go negative. Clamped, because
+             `total_increasing` would read a negative as a meter reset. #}
+          {{ [ns.kwh, 0.0] | max | round(2) }}
