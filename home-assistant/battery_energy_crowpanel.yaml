@@ -95,11 +95,14 @@ sensor:
 #     lifetime counter to today. One restart would put a four-digit kWh figure
 #     on the panel. False makes the meter accumulate differences only.
 #
-#   sensor_always_available: true — keep the last value when SolarNet drops out
-#     instead of going unavailable. The template sensor downstream requires all
-#     five of its terms to have a value and blanks the whole house total if any
-#     one is missing, so without this a thirty-second inverter hiccup takes the
-#     headline number off the wall.
+#   always_available: true — keep the last value when SolarNet drops out instead
+#     of going unavailable. The template sensor downstream requires all five of
+#     its terms to have a value and blanks the whole house total if any one is
+#     missing, so without this a thirty-second inverter hiccup takes the
+#     headline number off the wall. The key is `always_available`, not
+#     `sensor_always_available` — that is the name of the *constant*
+#     (`CONF_SENSOR_ALWAYS_AVAILABLE`), and writing it out fails the config
+#     check. Needs Home Assistant 2024.2 or newer (core PR #103481).
 utility_meter:
   taglich_batterie_geladen:
     name: "Täglich Batterie geladen"
@@ -107,7 +110,7 @@ utility_meter:
     source: sensor.batterie_geladen
     cycle: daily
     periodically_resetting: false
-    sensor_always_available: true
+    always_available: true
 
   taglich_batterie_entladen:
     name: "Täglich Batterie entladen"
@@ -115,4 +118,4 @@ utility_meter:
     source: sensor.batterie_entladen
     cycle: daily
     periodically_resetting: false
-    sensor_always_available: true
+    always_available: true
