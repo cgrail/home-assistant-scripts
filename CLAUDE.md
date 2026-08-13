@@ -63,7 +63,13 @@ The cached fonts under `esphome-builder/.esphome/font/` can be read with the `fr
 
 ## Home Assistant integration
 
-Both devices connect to HA via the native API (`api:` key). Sensor entity IDs are referenced directly in each YAML. The `home-assistant/template_sensors_crowpanel.yaml` snippet is pasted into HA's `configuration.yaml` (or included via `!include`) — it provides `sensor.zuzenhausen_abfahrten_esphome`, which serialises next train departures as JSON for the ESPHome device to parse inline with C++ lambda.
+Both devices connect to HA via the native API (`api:` key). Sensor entity IDs are referenced directly in each YAML. The files under `home-assistant/` are included from HA's `configuration.yaml`; each one's header says how, and they are not all included the same way:
+
+- `template_sensors_crowpanel.yaml` — value of `template:`. Provides `sensor.zuzenhausen_abfahrten_esphome` (next departures serialised as JSON, parsed inline by a C++ lambda on the device) and `sensor.taglicher_hausverbrauch`.
+- `sql_sensors_crowpanel.yaml` — value of `sql:`. Twelve months of energy history as one CSV state string.
+- `battery_energy_crowpanel.yaml` — a **package** (`homeassistant: packages:`), because it needs two top-level keys: `sensor:` for two Riemann-sum integrations of the SolarNet battery power sensors, and `utility_meter:` for the daily cycle on each.
+
+**Daily house consumption is an identity, and the battery is half of it.** `sensor.taglicher_hausverbrauch` = PV − Einspeisung − Batterie geladen + Batterie entladen + Netzbezug. Leaving the battery terms out — as it did until Aug 2026 — reads high on a sunny morning and low across a day the battery net-drained, and nothing about the number gives that away. SolarNet publishes the battery as **power only**, so the two daily kWh meters have to be built (`battery_energy_crowpanel.yaml`); a `utility_meter` over an integration sensor needs `periodically_resetting: false`, or one HA restart adds the lifetime total to today.
 
 ## Key conventions
 

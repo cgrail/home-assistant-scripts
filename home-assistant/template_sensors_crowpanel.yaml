@@ -24,19 +24,36 @@
 # `sensor.taglicher_stromvebrauch` is a daily utility_meter over "Bezogene
 # Wirkenergie", so despite its name it is grid *import*: on a sunny day it reads
 # near zero while the house runs happily off the roof. The house total is
-# therefore an identity, not a reading:
+# therefore an identity, not a reading — the same one the Energy dashboard
+# builds its "Hausverbrauch" from:
 #
-#     Verbrauch = (PV − Einspeisung) + Netzbezug
-#                  ^^^^^^^^^^^^^^^^    ^^^^^^^^^
-#                  covered itself      bought
+#     Verbrauch = PV − Einspeisung − Batt. geladen + Batt. entladen + Netzbezug
+#                 ^^^^^^^^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^
+#                 stayed in the      parked in the battery on the      bought
+#                 house              way past, and handed back later
 #
-# Battery. The BYD lives inside the "covered itself" term and this identity
-# cannot see it: PV that charges the battery counts as consumed the moment it
-# leaves the roof, and comes back as a discount when the battery discharges
-# later. Across a full day that mostly cancels — the error is whatever the SOC
-# moved between midnights — but mid-morning the figure runs high.
+# Every route into the house appears exactly once, whatever its source: PV that
+# charges the battery is subtracted where it goes in and added back where it
+# comes out, and grid energy that charges the battery is subtracted the same way
+# even though it arrived through the meter. So the identity holds for a
+# grid-charged battery too — no term needs to know where the electrons started.
 #
-# Units. All three sources are utility_meter helpers, and a utility_meter
+# The two battery terms are the whole reason this sensor exists in its current
+# form. Without them the sum charges the house for PV the moment it leaves the
+# roof and never credits it for the evening discharge, so the number runs high
+# on a sunny morning and low over a day the battery net-drained. On a day of
+# 4.1 kWh PV, 0.6 kWh out of the battery and 6.4 kWh bought, that is 10.5 kWh
+# against a true 11.1 — a whole battery's worth of the day missing, and no way
+# to tell from the number itself. See battery_energy_crowpanel.yaml, which is
+# where the two daily battery meters come from; SolarNet publishes the battery
+# as power only, so they do not exist until that package is included.
+#
+# Round-trip losses land in this total, because charge is measured going in and
+# discharge coming out and the difference has nowhere else to go. That is what
+# the Energy dashboard does as well, and it is defensible: the house did use
+# that energy, its battery just used it on the way.
+#
+# Units. All five sources are utility_meter helpers, and a utility_meter
 # inherits the unit of whatever it meters. The Fronius meters are not all in the
 # same one (the monthly grid sensor is in Wh), so each term is normalised to kWh
 # from its own `unit_of_measurement` rather than assumed — the same defence
@@ -49,24 +66,30 @@
       device_class: energy
       state_class: total_increasing
       icon: mdi:home-lightning-bolt
-      # A missing term does not look missing — it just understates the total,
-      # which reads like a real number. Going unavailable instead lets the panel
-      # hold its last value rather than draw a plausible lie.
+      # A missing term does not look missing — it just skews the total, which
+      # reads like a real number. Going unavailable instead lets the panel hold
+      # its last value rather than draw a plausible lie. The battery meters
+      # count here as much as the rest: dropping them is exactly the bug this
+      # sensor was fixed for, so their absence must not fail quiet either.
       availability: >
         {{ has_value('sensor.tagliche_pv_produktion')
            and has_value('sensor.taglich_eingespeist')
+           and has_value('sensor.taglich_batterie_geladen')
+           and has_value('sensor.taglich_batterie_entladen')
            and has_value('sensor.taglicher_stromvebrauch') }}
       state: >
         {% set ns = namespace(kwh = 0.0) %}
         {% for entity, sign in [
-             ('sensor.tagliche_pv_produktion',   1),
-             ('sensor.taglich_eingespeist',     -1),
-             ('sensor.taglicher_stromvebrauch',  1)] %}
+             ('sensor.tagliche_pv_produktion',        1),
+             ('sensor.taglich_eingespeist',          -1),
+             ('sensor.taglich_batterie_geladen',     -1),
+             ('sensor.taglich_batterie_entladen',     1),
+             ('sensor.taglicher_stromvebrauch',       1)] %}
           {% set unit = state_attr(entity, 'unit_of_measurement') %}
           {% set scale = 0.001 if unit == 'Wh' else (1000.0 if unit == 'MWh' else 1.0) %}
           {% set ns.kwh = ns.kwh + sign * (states(entity) | float(0)) * scale %}
         {% endfor %}
-        {# The three meters do not reset in the same instant at midnight, so for
+        {# The five meters do not reset in the same instant at midnight, so for
            a moment the sum can go negative. Clamped, because `total_increasing`
            would read a negative as a meter reset. #}
         {{ [ns.kwh, 0.0] | max | round(2) }}

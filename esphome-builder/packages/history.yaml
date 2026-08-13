@@ -29,9 +29,11 @@
 # is grid *import* despite its name — the Fronius smart meter only counts what
 # crosses the grid connection point — so it feeds the Netzbezug tile, and the
 # house total comes from `sensor.taglicher_hausverbrauch`, the template sensor
-# that does the (PV − Einspeisung) + Netzbezug arithmetic in Home Assistant.
-# Keeping that identity on the HA side means it is stated once, next to the
-# battery caveat it carries, rather than in every device that wants the number.
+# that does the PV − Einspeisung ∓ Batterie + Netzbezug arithmetic in Home
+# Assistant. Keeping that identity on the HA side means it is stated once, with
+# the five meters it needs in reach, rather than in every device that wants the
+# number — the headline is deliberately *not* the four tiles added up: the tiles
+# are meter readings at the property line, the headline is the house.
 #
 # The chart below is stacked: green is what the house covered itself
 # (PV minus Einspeisung), red is what it took from the grid. Bar height is the

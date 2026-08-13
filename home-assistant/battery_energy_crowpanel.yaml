@@ -1,0 +1,112 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Daily battery energy — the two terms the house total was missing.
+#
+# The Fronius SolarNet integration exposes the battery as *power* only,
+# `sensor.solarnet_power_battery_charge` / `..._discharge`, both in W and both
+# non-negative. A house total needs energy per day, so each one is Riemann
+# summed into a lifetime kWh counter and then cut into days by a utility_meter:
+#
+#     solarnet_power_battery_charge (W)
+#        └─ integration ─→ sensor.batterie_geladen (kWh, lifetime)
+#              └─ utility_meter daily ─→ sensor.taglich_batterie_geladen
+#
+# Two separate chains, not one net counter. A single signed "charge minus
+# discharge" sensor would swing up and down, and a utility_meter reads any
+# decrease in its source as a meter reset — it would zero itself every time the
+# battery started discharging. The integration's own `total_increasing` state
+# class wants the same thing. Splitting into two non-negative flows is what
+# makes both components behave, and SolarNet hands them over already split.
+#
+# `unit_prefix: k` with `unit_time: h` is what turns W into kWh; without it the
+# sum is Wh and the template downstream has to know that. It normalises by unit
+# anyway, but a sensor that states kWh is one less thing to be wrong about.
+#
+# `max_sub_interval` forces the integration to add a slice every minute even
+# while the power reading sits unchanged. Without it the integration only
+# advances when the source *fires*, so a battery holding a steady 4.8 kW for
+# half an hour contributes one lump at the end of it — and contributes nothing
+# at all if the value is still pending when the utility_meter rolls at midnight.
+# It needs Home Assistant 2024.8 or newer; on anything older, drop the key and
+# accept the ragged edges (`method: trapezoidal` already interpolates between
+# whatever updates do arrive).
+#
+# Losses. Charge and discharge are measured on their own side of the inverter,
+# so the round-trip loss — roughly a tenth of what goes in — is not attributed
+# anywhere here. Downstream it lands in house consumption, which is both what
+# the Energy dashboard does and, arguably, the truth: that energy was used by
+# the house, just by its battery.
+#
+# ── Including it ─────────────────────────────────────────────────────────────
+#
+# Unlike template_sensors_crowpanel.yaml and sql_sensors_crowpanel.yaml, which
+# are each the value of one key, this file is a **package**: it carries its own
+# top-level `sensor:` and `utility_meter:` keys, because it needs both. Include
+# it as
+#
+#     homeassistant:
+#       packages:
+#         crowpanel_batterie: !include home-assistant/battery_energy_crowpanel.yaml
+#
+# Packages merge into whatever `sensor:` and `utility_meter:` configuration.yaml
+# already has, which a second `sensor: !include` could not do — that is the
+# reason for the package rather than two more include files.
+#
+# The equivalent can be clicked together under Settings → Devices & Services →
+# Helpers (two "Integral" helpers, two "Utility meter" helpers on daily cycle).
+# Keep the entity ids the same either way — template_sensors_crowpanel.yaml
+# names them.
+# ─────────────────────────────────────────────────────────────────────────────
+
+sensor:
+  - platform: integration
+    name: "Batterie geladen"
+    unique_id: batterie_geladen_energie
+    source: sensor.solarnet_power_battery_charge
+    method: trapezoidal
+    unit_prefix: k
+    unit_time: h
+    round: 3
+    max_sub_interval: "00:01:00"
+
+  - platform: integration
+    name: "Batterie entladen"
+    unique_id: batterie_entladen_energie
+    source: sensor.solarnet_power_battery_discharge
+    method: trapezoidal
+    unit_prefix: k
+    unit_time: h
+    round: 3
+    max_sub_interval: "00:01:00"
+
+# Both meters override the same two defaults, and both overrides exist because
+# the source is an integration sensor rather than a meter that resets:
+#
+#   periodically_resetting: false — the default is `true`, which tells the meter
+#     to read any *drop* in its source as "the source reset, count its new value
+#     from zero". An integration sensor never resets, but it does go `unknown`
+#     across a Home Assistant restart and then come back with its restored
+#     total, and the default reading of that sequence is to add the whole
+#     lifetime counter to today. One restart would put a four-digit kWh figure
+#     on the panel. False makes the meter accumulate differences only.
+#
+#   sensor_always_available: true — keep the last value when SolarNet drops out
+#     instead of going unavailable. The template sensor downstream requires all
+#     five of its terms to have a value and blanks the whole house total if any
+#     one is missing, so without this a thirty-second inverter hiccup takes the
+#     headline number off the wall.
+utility_meter:
+  taglich_batterie_geladen:
+    name: "Täglich Batterie geladen"
+    unique_id: taglich_batterie_geladen
+    source: sensor.batterie_geladen
+    cycle: daily
+    periodically_resetting: false
+    sensor_always_available: true
+
+  taglich_batterie_entladen:
+    name: "Täglich Batterie entladen"
+    unique_id: taglich_batterie_entladen
+    source: sensor.batterie_entladen
+    cycle: daily
+    periodically_resetting: false
+    sensor_always_available: true
