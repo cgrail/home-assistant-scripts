@@ -33,6 +33,20 @@
 # Now such a month arrives as "0/0": an empty slot in a full twelve-month axis,
 # which reads as missing data instead of as a different window.
 #
+# Months from before the recorder was keeping statistics are filled in by hand
+# from the `seed` CTE — a literal table of monthly totals in kWh, in the column
+# order ym, PV, Einspeisung, Netzbezug. It **wins** over the statistics rather
+# than only filling gaps: a month is listed there precisely because the database
+# is empty or wrong for it, and "if it is in the list, the list is right" is a
+# rule that needs no thought a year from now. A NULL column falls back to
+# statistics, so a month that is only half known can be patched one figure at a
+# time. The table needs no upkeep either — a seeded month leaves the window on
+# its own as the rolling twelve months move past it, and the row can be deleted
+# whenever it is next noticed.
+#
+# The four rows currently in `seed` are PLACEHOLDERS with invented figures.
+# Replace them with the real ones before trusting the left-hand bars.
+#
 # Reads the `statistics` table: hourly long-term statistics, which the recorder
 # keeps forever. Not `statistics_short_term`, which is purged.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -45,6 +59,12 @@
   value_template: "{{ value if value else '' }}"
   query: >-
     WITH RECURSIVE
+    seed(ym, pv_kwh, out_kwh, in_kwh) AS (
+      VALUES ('2025-09', 700.0, 450.0,  90.0),
+             ('2025-10', 420.0, 220.0, 190.0),
+             ('2025-11', 180.0,  50.0, 330.0),
+             ('2025-12', 235.0,  25.0, 420.0)
+    ),
     slots(n, ym) AS (
       SELECT 0, strftime('%Y-%m', 'now', 'localtime', 'start of month', '-11 months')
       UNION ALL
@@ -85,11 +105,13 @@
     SELECT group_concat(v, ',') AS hist FROM (
       SELECT
         slots.n,
-        CAST(ROUND(MAX(0, COALESCE(agg.pv_kwh, 0) - COALESCE(agg.out_kwh, 0))) AS INT)
+        CAST(ROUND(MAX(0, COALESCE(seed.pv_kwh, agg.pv_kwh, 0)
+                        - COALESCE(seed.out_kwh, agg.out_kwh, 0))) AS INT)
         || '/' ||
-        CAST(ROUND(COALESCE(agg.in_kwh, 0)) AS INT) AS v
+        CAST(ROUND(COALESCE(seed.in_kwh, agg.in_kwh, 0)) AS INT) AS v
       FROM slots
-      LEFT JOIN agg ON agg.ym = slots.ym
+      LEFT JOIN agg  ON agg.ym  = slots.ym
+      LEFT JOIN seed ON seed.ym = slots.ym
       ORDER BY slots.n
     );
 
