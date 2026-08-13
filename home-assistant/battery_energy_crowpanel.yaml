@@ -45,7 +45,13 @@
 #
 #     homeassistant:
 #       packages:
-#         crowpanel_batterie: !include home-assistant/battery_energy_crowpanel.yaml
+#         crowpanel_batterie: !include battery_energy_crowpanel.yaml
+#
+# `packages:` only exists *inside* `homeassistant:` — at the top level of
+# configuration.yaml it is read as an integration name and the config check
+# fails on it. The include path is relative to the config directory, so it is
+# the bare filename above when the file sits next to configuration.yaml, and
+# carries a folder only if you keep it in one.
 #
 # Packages merge into whatever `sensor:` and `utility_meter:` configuration.yaml
 # already has, which a second `sensor: !include` could not do — that is the
