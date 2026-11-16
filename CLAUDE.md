@@ -23,7 +23,7 @@ Do not run esphome commands. The user does it on it's own.
 - `args:` entries are raw C++ expressions, so `args: ['id(pv_kw)']` prints a global. Sanitising NaN once into a global beats an `isnan` guard around every label.
 
 #### Christmas (`packages/christmas.yaml`)
-Seasonal. The package holds the decorations — string of lights, countdown to Heiligabend, snowflakes — and is taken down by removing its line from `packages:`. The fir-green and gold palette is plain colour values in the other packages, all changed in the commit that added the package; revert that commit for the slate palette. Data colours (green own supply, red grid, amber PV) are not part of the theme and must stay as they are.
+Seasonal. The package holds the decorations — string of lights, countdown to Heiligabend, snowflakes — and is taken down by removing its line from `packages:`. The palette — deep red screen and header, fir-green cards, gold card borders — is plain colour values in the other packages; revert the palette commits (`git log --grep Christmas`) for the slate one. Red stops at the card edge: inside a card it means "from the grid". Data colours (green own supply, red grid, amber PV) are not part of the theme and must stay as they are.
 
 - `overlays` has to stay the last package: the widget list is merged in package order and the full-screen warnings must cover everything.
 
