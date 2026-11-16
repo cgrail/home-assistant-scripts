@@ -7,7 +7,7 @@
 #
 # So the last good answer is kept. While the backend is gone the card keeps
 # showing it, drops each train as its departure time passes, and replaces the
-# "Abfahrt" heading with "Stand HH:MM" in amber — the time that answer is from,
+# "Abfahrt" heading with "Stand HH:MM" in red — the time that answer is from,
 # because the delays next to it are only as good as that. A card that has run
 # out of kept departures goes back to "--".
 #
@@ -122,10 +122,10 @@ script:
 
           if (stale && !id(train_stand).empty()) {
             lv_label_set_text(id(lbl_train_status), ("Stand " + id(train_stand)).c_str());
-            lv_obj_set_style_text_color(id(lbl_train_status), lv_color_hex(0xFBBF24), LV_PART_MAIN);
+            lv_obj_set_style_text_color(id(lbl_train_status), lv_color_hex(0xFF1818), LV_PART_MAIN);
           } else {
             lv_label_set_text(id(lbl_train_status), "Abfahrt");
-            lv_obj_set_style_text_color(id(lbl_train_status), lv_color_hex(0xA8BDAC), LV_PART_MAIN);
+            lv_obj_set_style_text_color(id(lbl_train_status), lv_color_hex(0xC0C0C0), LV_PART_MAIN);
           }
 
           // A kept delay is old news: it must not put the full-screen
@@ -172,7 +172,7 @@ lvgl:
         bg_color: 0x002000
         radius: 12
         border_width: 1
-        border_color: 0x7C5E00
+        border_color: 0xFFFFFF
         pad_all: 0
         widgets:
           - label:
@@ -180,7 +180,7 @@ lvgl:
               y: 10
               text: "Zug"
               text_font: montserrat_14_de
-              text_color: 0xA8BDAC
+              text_color: 0xC0C0C0
           # "Abfahrt", or "Stand HH:MM" while the departures are kept ones.
           - label:
               id: lbl_train_status
@@ -188,13 +188,13 @@ lvgl:
               y: 10
               text: "Abfahrt"
               text_font: montserrat_14_de
-              text_color: 0xA8BDAC
+              text_color: 0xC0C0C0
           - label:
               id: val_dep1_time
               x: 15
               y: 30
               text: "--:--"
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
           - label:
               id: val_dep1_dir
               x: 80
@@ -202,20 +202,20 @@ lvgl:
               width: 185
               text: "--"
               text_font: montserrat_20_de
-              text_color: 0xA8BDAC
+              text_color: 0xC0C0C0
           - label:
               id: val_dep1_delay
               x: 230
               y: 30
               text: "--"
               text_font: montserrat_20_de
-              text_color: 0x2EDC3C
+              text_color: 0x18F018
           - label:
               id: val_dep2_time
               x: 15
               y: 60
               text: "--:--"
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
           - label:
               id: val_dep2_dir
               x: 80
@@ -223,11 +223,11 @@ lvgl:
               width: 185
               text: "--"
               text_font: montserrat_20_de
-              text_color: 0xA8BDAC
+              text_color: 0xC0C0C0
           - label:
               id: val_dep2_delay
               x: 230
               y: 60
               text: "--"
               text_font: montserrat_20_de
-              text_color: 0x2EDC3C
+              text_color: 0x18F018

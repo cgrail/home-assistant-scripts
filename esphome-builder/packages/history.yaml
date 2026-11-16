@@ -309,8 +309,8 @@ script:
               int m = (now.month - 1) - (11 - i);
               while (m < 0) m += 12;
               lv_label_set_text(lbl[i], MON[m % 12]);
-              const uint32_t col = i == 11 ? 0xE2E8F0
-                                           : (slot_total[i] > 0.0f ? 0xA8BDAC : 0x4F6B55);
+              const uint32_t col = i == 11 ? 0xFFFFFF
+                                           : (slot_total[i] > 0.0f ? 0xC0C0C0 : 0x606060);
               lv_obj_set_style_text_color(lbl[i], lv_color_hex(col), LV_PART_MAIN);
             }
           }
@@ -331,7 +331,7 @@ sensor:
       - lambda: |-
           id(kwh_pv_heute) = isnan(x) ? 0.0f : x;
           lv_obj_set_style_text_color(id(icon_pv_heute),
-              lv_color_hex(id(kwh_pv_heute) > 0.05f ? 0xFBBF24 : 0x5A7560), LV_PART_MAIN);
+              lv_color_hex(id(kwh_pv_heute) > 0.05f ? 0x18F018 : 0x707070), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_pv_heute
           text:
@@ -346,7 +346,7 @@ sensor:
       - lambda: |-
           id(kwh_ein_heute) = isnan(x) ? 0.0f : x;
           lv_obj_set_style_text_color(id(icon_ein_heute),
-              lv_color_hex(id(kwh_ein_heute) > 0.05f ? 0x2EDC3C : 0x5A7560), LV_PART_MAIN);
+              lv_color_hex(id(kwh_ein_heute) > 0.05f ? 0x18F018 : 0x707070), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_ein_heute
           text:
@@ -364,7 +364,7 @@ sensor:
       - lambda: |-
           id(kwh_netz_heute) = isnan(x) ? 0.0f : x;
           lv_obj_set_style_text_color(id(icon_netz_heute),
-              lv_color_hex(id(kwh_netz_heute) > 0.05f ? 0xF83030 : 0x5A7560), LV_PART_MAIN);
+              lv_color_hex(id(kwh_netz_heute) > 0.05f ? 0xFF1818 : 0x707070), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_netz_heute
           text:
@@ -399,7 +399,7 @@ sensor:
       - lambda: |-
           id(kwh_wp_heute) = isnan(x) ? 0.0f : x;
           lv_obj_set_style_text_color(id(icon_wp_heute),
-              lv_color_hex(id(kwh_wp_heute) > 0.05f ? 0xFB923C : 0x5A7560), LV_PART_MAIN);
+              lv_color_hex(id(kwh_wp_heute) > 0.05f ? 0xFFFFFF : 0x707070), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_wp_heute
           text:
@@ -471,7 +471,7 @@ lvgl:
         bg_color: 0x002000
         radius: 12
         border_width: 1
-        border_color: 0x7C5E00
+        border_color: 0xFFFFFF
         pad_all: 0
         scrollable: false
         widgets:
@@ -490,7 +490,7 @@ lvgl:
               width: 20
               text: "\U000F1903"
               styles: [t_icon]
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
           - label:
               x: 186
               y: 12
@@ -498,7 +498,7 @@ lvgl:
               text: "Verbrauch"
               styles: [t_caption_sm]
               text_align: left
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
           # Right-aligned to the card's own margin: the total is the one number
           # on this card that is a total, so it gets the edge to itself. Unit in
           # the same label, because nothing has to line up underneath it. 105 px
@@ -528,7 +528,7 @@ lvgl:
               width: 85
               text: "\U000F0599"
               styles: [t_icon]
-              text_color: 0xFBBF24
+              text_color: 0x18F018
           - label:
               id: val_pv_heute
               x: 11
@@ -544,14 +544,14 @@ lvgl:
               text: "kWh"
               styles: [t_caption_sm]
               text_align: left
-              text_color: 0xA8BDAC
+              text_color: 0xC0C0C0
           - label:
               x: 10
               y: 78
               width: 85
               text: "PV"
               styles: [t_caption]
-              text_color: 0xFBBF24
+              text_color: 0x18F018
           - bar:
               id: bar_pv_heute
               x: 18
@@ -566,7 +566,7 @@ lvgl:
               pad_all: 0
               scrollable: false
               indicator:
-                bg_color: 0xFBBF24
+                bg_color: 0x18F018
                 radius: 2
 
           # ── Tile 2: Eingespeist ──────────────────────────────
@@ -584,7 +584,7 @@ lvgl:
               width: 85
               text: "\U000F192C"
               styles: [t_icon]
-              text_color: 0x2EDC3C
+              text_color: 0x18F018
           - label:
               id: val_ein_heute
               x: 101
@@ -600,14 +600,14 @@ lvgl:
               text: "kWh"
               styles: [t_caption_sm]
               text_align: left
-              text_color: 0xA8BDAC
+              text_color: 0xC0C0C0
           - label:
               x: 100
               y: 78
               width: 85
               text: "Eingespeist"
               styles: [t_caption]
-              text_color: 0x2EDC3C
+              text_color: 0x18F018
           - bar:
               id: bar_ein_heute
               x: 108
@@ -622,7 +622,7 @@ lvgl:
               pad_all: 0
               scrollable: false
               indicator:
-                bg_color: 0x2EDC3C
+                bg_color: 0x18F018
                 radius: 2
 
           # ── Tile 3: Netzbezug ────────────────────────────────
@@ -640,7 +640,7 @@ lvgl:
               width: 85
               text: "\U000F192D"
               styles: [t_icon]
-              text_color: 0xF83030
+              text_color: 0xFF1818
           - label:
               id: val_netz_heute
               x: 191
@@ -656,14 +656,14 @@ lvgl:
               text: "kWh"
               styles: [t_caption_sm]
               text_align: left
-              text_color: 0xA8BDAC
+              text_color: 0xC0C0C0
           - label:
               x: 190
               y: 78
               width: 85
               text: "Netzbezug"
               styles: [t_caption]
-              text_color: 0xF83030
+              text_color: 0xFF1818
           - bar:
               id: bar_netz_heute
               x: 198
@@ -678,7 +678,7 @@ lvgl:
               pad_all: 0
               scrollable: false
               indicator:
-                bg_color: 0xF83030
+                bg_color: 0xFF1818
                 radius: 2
 
           # ── Tile 4: Wärme ────────────────────────────────────
@@ -701,7 +701,7 @@ lvgl:
               width: 85
               text: "\U000F0238"
               styles: [t_icon]
-              text_color: 0xFB923C
+              text_color: 0xFFFFFF
           - label:
               id: val_wp_heute
               x: 281
@@ -717,14 +717,14 @@ lvgl:
               text: "kWh"
               styles: [t_caption_sm]
               text_align: left
-              text_color: 0xA8BDAC
+              text_color: 0xC0C0C0
           - label:
               x: 280
               y: 78
               width: 85
               text: "Wärme"
               styles: [t_caption]
-              text_color: 0xFB923C
+              text_color: 0xFFFFFF
           - bar:
               id: bar_wp_heute
               x: 288
@@ -739,7 +739,7 @@ lvgl:
               pad_all: 0
               scrollable: false
               indicator:
-                bg_color: 0xFB923C
+                bg_color: 0xFFFFFF
                 radius: 2
 
           # ── Rule ─────────────────────────────────────────────
@@ -770,30 +770,30 @@ lvgl:
               text: "MWh"
               styles: [t_caption_sm]
               text_align: left
-              text_color: 0xA8BDAC
-          - obj:   { x: 50, y: 120, width: 8, height: 8, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false }
+              text_color: 0xC0C0C0
+          - obj:   { x: 50, y: 120, width: 8, height: 8, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false }
           - label:
               x: 61
               y: 116
               text: "PV"
               styles: [t_caption_sm]
               text_align: left
-              text_color: 0x2EDC3C
-          - obj:   { x: 84, y: 120, width: 8, height: 8, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false }
+              text_color: 0x18F018
+          - obj:   { x: 84, y: 120, width: 8, height: 8, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false }
           - label:
               x: 95
               y: 116
               text: "Netz"
               styles: [t_caption_sm]
               text_align: left
-              text_color: 0xF83030
+              text_color: 0xFF1818
           - label:
               x: 130
               y: 116
               text: "Autark"
               styles: [t_caption_sm]
               text_align: left
-              text_color: 0xA8BDAC
+              text_color: 0xC0C0C0
           # Both boxes are sized for "100 %" plus a few pixels of slack, not for
           # a typical value: the digits are proportional, so "88" is wider than
           # "71", and a box cut to today's number wraps onto a second line on
@@ -806,7 +806,7 @@ lvgl:
               text: "Monat -- %"
               styles: [t_caption]
               text_align: right
-              text_color: 0x2EDC3C
+              text_color: 0x18F018
           - label:
               id: lbl_autark_gesamt
               x: 259
@@ -815,7 +815,7 @@ lvgl:
               text: "Gesamt -- %"
               styles: [t_caption]
               text_align: right
-              text_color: 0x2EDC3C
+              text_color: 0x18F018
 
           # ── Gridlines and axis ───────────────────────────────
           # One line per 0.5 MWh, spanning the plot from just clear of the
@@ -831,10 +831,10 @@ lvgl:
           - obj:   { id: hist_grid_3, x: 36, y: 195, width: 327, height: 1, bg_color: 0x004C00, border_width: 0, radius: 0, pad_all: 0, scrollable: false, hidden: true }
           # Right-aligned into the 20 px gutter: "0.5" is 18 px at 12 px, and
           # aligning right keeps the decimal points under each other.
-          - label: { id: hist_axis_0, x: 12, y: 190, width: 20, text: "", styles: [t_caption_sm], text_align: right, text_color: 0xA8BDAC, hidden: true }
-          - label: { id: hist_axis_1, x: 12, y: 190, width: 20, text: "", styles: [t_caption_sm], text_align: right, text_color: 0xA8BDAC, hidden: true }
-          - label: { id: hist_axis_2, x: 12, y: 190, width: 20, text: "", styles: [t_caption_sm], text_align: right, text_color: 0xA8BDAC, hidden: true }
-          - label: { id: hist_axis_3, x: 12, y: 190, width: 20, text: "", styles: [t_caption_sm], text_align: right, text_color: 0xA8BDAC, hidden: true }
+          - label: { id: hist_axis_0, x: 12, y: 190, width: 20, text: "", styles: [t_caption_sm], text_align: right, text_color: 0xC0C0C0, hidden: true }
+          - label: { id: hist_axis_1, x: 12, y: 190, width: 20, text: "", styles: [t_caption_sm], text_align: right, text_color: 0xC0C0C0, hidden: true }
+          - label: { id: hist_axis_2, x: 12, y: 190, width: 20, text: "", styles: [t_caption_sm], text_align: right, text_color: 0xC0C0C0, hidden: true }
+          - label: { id: hist_axis_3, x: 12, y: 190, width: 20, text: "", styles: [t_caption_sm], text_align: right, text_color: 0xC0C0C0, hidden: true }
 
           # ── Chart ────────────────────────────────────────────
           # Twelve months at pitch 27 starting at x=38, the pitch the axis
@@ -842,30 +842,30 @@ lvgl:
           # to its right, leaving 5 px to the next month so a pair reads as one
           # month. Baseline is y=196 with 55 px of headroom; y and height are
           # set in refresh_history_chart, so the values here are placeholders.
-          - obj:  { id: hist_eigen_0,  x: 38,  y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_0,   x: 50,  y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_1,  x: 65,  y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_1,   x: 77,  y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_2,  x: 92,  y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_2,   x: 104, y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_3,  x: 119, y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_3,   x: 131, y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_4,  x: 146, y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_4,   x: 158, y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_5,  x: 173, y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_5,   x: 185, y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_6,  x: 200, y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_6,   x: 212, y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_7,  x: 227, y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_7,   x: 239, y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_8,  x: 254, y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_8,   x: 266, y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_9,  x: 281, y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_9,   x: 293, y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_10, x: 308, y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_10,  x: 320, y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_11, x: 335, y: 195, width: 10, height: 1, bg_color: 0x2EDC3C, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_11,  x: 347, y: 195, width: 10, height: 1, bg_color: 0xF83030, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_0,  x: 38,  y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_0,   x: 50,  y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_1,  x: 65,  y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_1,   x: 77,  y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_2,  x: 92,  y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_2,   x: 104, y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_3,  x: 119, y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_3,   x: 131, y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_4,  x: 146, y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_4,   x: 158, y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_5,  x: 173, y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_5,   x: 185, y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_6,  x: 200, y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_6,   x: 212, y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_7,  x: 227, y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_7,   x: 239, y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_8,  x: 254, y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_8,   x: 266, y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_9,  x: 281, y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_9,   x: 293, y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_10, x: 308, y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_10,  x: 320, y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_11, x: 335, y: 195, width: 10, height: 1, bg_color: 0x18F018, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_11,  x: 347, y: 195, width: 10, height: 1, bg_color: 0xFF1818, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
 
           # ── Baseline ─────────────────────────────────────────
           # The bars stand on this rather than floating over the card, which is
@@ -886,15 +886,15 @@ lvgl:
           # 12 px, not 14: the widest of them, "Aug", is 29 px at 14 px and
           # would touch its neighbour, but 25 px at 12 px — 2 px of air either
           # side in a 27 px box, which is what the axis gutter costs.
-          - label: { id: hist_lbl_0,  x: 36,  y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_1,  x: 63,  y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_2,  x: 90,  y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_3,  x: 117, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_4,  x: 144, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_5,  x: 171, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_6,  x: 198, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_7,  x: 225, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_8,  x: 252, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_9,  x: 279, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_10, x: 306, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
-          - label: { id: hist_lbl_11, x: 333, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xA8BDAC }
+          - label: { id: hist_lbl_0,  x: 36,  y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_1,  x: 63,  y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_2,  x: 90,  y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_3,  x: 117, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_4,  x: 144, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_5,  x: 171, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_6,  x: 198, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_7,  x: 225, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_8,  x: 252, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_9,  x: 279, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_10, x: 306, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }
+          - label: { id: hist_lbl_11, x: 333, y: 200, width: 27, text: "", styles: [t_caption_sm], text_color: 0xC0C0C0 }

@@ -117,7 +117,7 @@ lvgl:
         bg_color: 0x002000
         radius: 12
         border_width: 1
-        border_color: 0x7C5E00
+        border_color: 0xFFFFFF
         pad_all: 0
         widgets:
           - label:
@@ -125,101 +125,101 @@ lvgl:
               y: 10
               text: "Esszimmer"
               text_font: montserrat_14_de
-              text_color: 0xFBBF24
+              text_color: 0xC0C0C0
           - label:
               id: val_temp_essz
               x: 10
               y: 30
               text: "0"
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
 
           - label:
               x: 105
               y: 10
               text: "Schlafzimmer"
               text_font: montserrat_14_de
-              text_color: 0xFBBF24
+              text_color: 0xC0C0C0
           - label:
               id: val_temp_schlaf
               x: 105
               y: 30
               text: "0"
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
 
           - label:
               x: 220
               y: 10
               text: "David"
               text_font: montserrat_14_de
-              text_color: 0xFBBF24
+              text_color: 0xC0C0C0
           - label:
               id: val_temp_david
               x: 220
               y: 30
               text: "0"
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
 
           - label:
               x: 315
               y: 10
               text: "Sami"
               text_font: montserrat_14_de
-              text_color: 0xFBBF24
+              text_color: 0xC0C0C0
           - label:
               id: val_temp_sami
               x: 315
               y: 30
               text: "0"
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
 
           - label:
               x: 410
               y: 10
               text: "Jona"
               text_font: montserrat_14_de
-              text_color: 0xFBBF24
+              text_color: 0xC0C0C0
           - label:
               id: val_temp_jona
               x: 410
               y: 30
               text: "0"
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
 
           - label:
               x: 505
               y: 10
               text: "Paul"
               text_font: montserrat_14_de
-              text_color: 0xFBBF24
+              text_color: 0xC0C0C0
           - label:
               id: val_temp_paul
               x: 505
               y: 30
               text: "0"
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
 
           - label:
               x: 600
               y: 10
               text: "Johanna"
               text_font: montserrat_14_de
-              text_color: 0xFBBF24
+              text_color: 0xC0C0C0
           - label:
               id: val_temp_johanna
               x: 600
               y: 30
               text: "0"
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF
 
           - label:
               x: 695
               y: 10
               text: "Büro"
               text_font: montserrat_14_de
-              text_color: 0xFBBF24
+              text_color: 0xC0C0C0
           - label:
               id: val_temp_buero
               x: 695
               y: 30
               text: "0"
-              text_color: 0xF8FAFC
+              text_color: 0xFFFFFF

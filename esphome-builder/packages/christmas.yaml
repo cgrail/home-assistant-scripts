@@ -5,14 +5,16 @@
 #   y 12 … 33   fir tree and the countdown to Heiligabend, above the date
 #   y 13 … 40   four snowflakes in the empty middle of the header
 #
-# The other half of the look is the palette, which is red and green and
-# nothing from the blue side of the wheel: a red screen (the header and the
-# gaps between the cards), green cards with gold borders on it, sage instead
-# of slate for the grey text, and white for what used to be sky blue or cyan
-# (house, battery, train times). Every dark colour in it is a pure hue — see
-# "Panel colour" in CLAUDE.md for why that is not optional on this panel. Red
-# inside a card still only means "from the grid". The palette is plain colour
-# values in the other packages and in the device file.
+# The other half of the look is the palette, which is three colours and each
+# of them means one thing:
+#   green  from the roof — PV, Einspeisung, the autark share
+#   red    from the grid — Netzbezug; also the screen behind the cards
+#   white  everything else — house, heat pump, battery, Buzz, rooms, trains
+# Greys are neutral, for secondary text and for icons that are "off". Nothing
+# has a blue, amber or orange of its own any more. Every dark colour is a pure
+# hue — see "Panel colour" in CLAUDE.md for why that is not optional on this
+# panel. The palette is plain colour values in the other packages and in the
+# device file.
 #
 # To take Christmas down again: remove the `christmas:` line from `packages:`
 # in the device file for the decorations, and revert the palette commits for
@@ -76,31 +78,31 @@ lvgl:
   widgets:
     # ── String of lights ───────────────────────────────────────────────────────
     # The wire, then twenty bulbs at pitch 40 hanging just under it, cycling
-    # white / green / gold / green — no red ones, which the red screen behind
+    # alternately white and green — no red ones, which the red screen behind
     # them would swallow. The glow is the box shadow in the bulb's own
     # colour. Small objs need pad_all 0 and scrollable false or they sprout
     # scrollbars — see CLAUDE.md.
     - obj:   { x: 0, y: 3, width: 800, height: 1, bg_color: 0x003C00, border_width: 0, radius: 0, pad_all: 0, scrollable: false }
-    - obj: { id: xmas_bulb_0, x: 16, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFF7ED, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFF7ED, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_1, x: 56, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x2EDC3C, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x2EDC3C, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_2, x: 96, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFBBF24, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFBBF24, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_3, x: 136, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x2EDC3C, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x2EDC3C, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_4, x: 176, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFF7ED, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFF7ED, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_5, x: 216, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x2EDC3C, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x2EDC3C, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_6, x: 256, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFBBF24, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFBBF24, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_7, x: 296, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x2EDC3C, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x2EDC3C, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_8, x: 336, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFF7ED, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFF7ED, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_9, x: 376, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x2EDC3C, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x2EDC3C, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_10, x: 416, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFBBF24, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFBBF24, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_11, x: 456, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x2EDC3C, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x2EDC3C, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_12, x: 496, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFF7ED, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFF7ED, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_13, x: 536, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x2EDC3C, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x2EDC3C, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_14, x: 576, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFBBF24, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFBBF24, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_15, x: 616, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x2EDC3C, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x2EDC3C, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_16, x: 656, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFF7ED, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFF7ED, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_17, x: 696, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x2EDC3C, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x2EDC3C, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_18, x: 736, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFBBF24, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFBBF24, shadow_opa: 80% }
-    - obj: { id: xmas_bulb_19, x: 776, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x2EDC3C, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x2EDC3C, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_0, x: 16, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFFFFF, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFFFFF, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_1, x: 56, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x18F018, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x18F018, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_2, x: 96, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFFFFF, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFFFFF, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_3, x: 136, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x18F018, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x18F018, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_4, x: 176, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFFFFF, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFFFFF, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_5, x: 216, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x18F018, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x18F018, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_6, x: 256, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFFFFF, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFFFFF, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_7, x: 296, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x18F018, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x18F018, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_8, x: 336, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFFFFF, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFFFFF, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_9, x: 376, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x18F018, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x18F018, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_10, x: 416, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFFFFF, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFFFFF, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_11, x: 456, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x18F018, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x18F018, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_12, x: 496, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFFFFF, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFFFFF, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_13, x: 536, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x18F018, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x18F018, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_14, x: 576, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFFFFF, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFFFFF, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_15, x: 616, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x18F018, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x18F018, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_16, x: 656, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFFFFF, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFFFFF, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_17, x: 696, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x18F018, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x18F018, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_18, x: 736, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFFFFFF, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFFFFFF, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_19, x: 776, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x18F018, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x18F018, shadow_opa: 80% }
 
     # ── Countdown ──────────────────────────────────────────────────────────────
     # In the free strip above the date, left-aligned with it. The longest text,
@@ -110,14 +112,14 @@ lvgl:
         y: 12
         text: "\U000F0405"
         text_font: mdi_xmas
-        text_color: 0x2EDC3C
+        text_color: 0x18F018
     - label:
         id: xmas_countdown
         x: 184
         y: 16
         text: ""
         text_font: montserrat_14_de
-        text_color: 0xFBBF24
+        text_color: 0xFFFFFF
 
     # ── Snow ───────────────────────────────────────────────────────────────────
     # Right of the countdown and above the weather text, which is right-aligned

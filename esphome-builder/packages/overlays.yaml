@@ -61,7 +61,7 @@ lvgl:
               text_align: center
               text: "\U000F0026"
               text_font: mdi_80
-              text_color: 0xFFD700
+              text_color: 0xFFFFFF
           - label:
               x: 0
               y: 180
@@ -69,7 +69,7 @@ lvgl:
               text_align: center
               text: "Garage offen"
               text_font: montserrat_big_de
-              text_color: 0xFF4500
+              text_color: 0xFF1818
     - obj:
         id: overlay_zug_fallt_aus
         x: 0
@@ -88,7 +88,7 @@ lvgl:
               text_align: center
               text: "\U000F0026"
               text_font: mdi_80
-              text_color: 0xFFD700
+              text_color: 0xFFFFFF
           - label:
               x: 0
               y: 140
@@ -96,7 +96,7 @@ lvgl:
               text_align: center
               text: "Zug fällt aus"
               text_font: montserrat_big_de
-              text_color: 0xFF4500
+              text_color: 0xFF1818
     - obj:
         id: overlay_zug_verspaetet
         x: 0
@@ -115,7 +115,7 @@ lvgl:
               text_align: center
               text: "\U000F0026"
               text_font: mdi_80
-              text_color: 0xFFD700
+              text_color: 0xFFFFFF
           - label:
               id: overlay_delay_label
               x: 0
@@ -124,4 +124,4 @@ lvgl:
               text_align: center
               text: "Zug +5 min"
               text_font: montserrat_big_de
-              text_color: 0xFFA500
+              text_color: 0xFF1818
