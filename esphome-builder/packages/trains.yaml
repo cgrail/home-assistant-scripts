@@ -1,3 +1,20 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Train card — the next two departures
+#
+# The departures come from a Home Assistant sensor that is fed by a web backend,
+# and that backend drops out now and then. The sensor then says "unavailable"
+# (or an empty list) and the card used to fall to "--" on every line.
+#
+# So the last good answer is kept. While the backend is gone the card keeps
+# showing it, drops each train as its departure time passes, and replaces the
+# "Abfahrt" heading with "Stand HH:MM" in amber — the time that answer is from,
+# because the delays next to it are only as good as that. A card that has run
+# out of kept departures goes back to "--".
+#
+# The fallback is only as long as the answer it kept: the card shows two
+# departures but skips through as many as the sensor's state carries.
+# ─────────────────────────────────────────────────────────────────────────────
+
 globals:
   # Delay of the next departure in minutes, kept so the overlay can be
   # re-evaluated on a timer and not only when the sensor updates.
@@ -5,6 +22,20 @@ globals:
     type: int
     restore_value: false
     initial_value: '0'
+  # Last good answer of the backend, and when it arrived ("HH:MM").
+  - id: train_json
+    type: std::string
+    restore_value: false
+    initial_value: '""'
+  - id: train_stand
+    type: std::string
+    restore_value: false
+    initial_value: '""'
+  # True while the sensor's current state is not a departure list.
+  - id: train_stale
+    type: bool
+    restore_value: false
+    initial_value: 'false'
 
 script:
   # Single place that decides whether the delay overlay is visible:
@@ -23,16 +54,10 @@ script:
             lv_obj_add_flag(id(overlay_zug_verspaetet), LV_OBJ_FLAG_HIDDEN);
           }
 
-interval:
-  - interval: 60s
+  # Draws the card from train_json. Run by the sensor and by the 60 s timer:
+  # while the answer is a kept one, the clock is what moves the card on.
+  - id: render_trains
     then:
-      - script.execute: update_delay_overlay
-
-text_sensor:
-  - platform: homeassistant
-    id: zuzenhausen_departures_raw
-    entity_id: sensor.zuzenhausen_abfahrten_esphome
-    on_value:
       - lambda: |-
           auto json_get = [](const std::string& s, const std::string& key, int nth) -> std::string {
             std::string needle = "\"" + key + "\"";
@@ -65,22 +90,76 @@ text_sensor:
             snprintf(buf, sizeof(buf), n > 0 ? "+%d min" : "%d min", n);
             return std::string(buf);
           };
-          std::string d1_time      = json_get(x, "departure_current", 0);
-          std::string d1_raw_delay = json_get(x, "delay", 0);
-          int d1_delay_min         = (d1_raw_delay == "--") ? 0 : static_cast<int>(atof(d1_raw_delay.c_str()));
-          std::string d1_delay     = fmt_delay(d1_raw_delay);
-          std::string d1_dir       = json_get(x, "richtung", 0);
-          std::string d2_time  = json_get(x, "departure_current", 1);
-          std::string d2_delay = fmt_delay(json_get(x, "delay", 1));
-          std::string d2_dir   = json_get(x, "richtung", 1);
-          lv_label_set_text(id(val_dep1_time),  d1_time.c_str());
-          lv_label_set_text(id(val_dep1_delay), d1_delay.c_str());
-          lv_label_set_text(id(val_dep1_dir),   d1_dir.c_str());
-          lv_label_set_text(id(val_dep2_time),  d2_time.c_str());
-          lv_label_set_text(id(val_dep2_delay), d2_delay.c_str());
-          lv_label_set_text(id(val_dep2_dir),   d2_dir.c_str());
-          id(train_delay_min) = d1_delay_min;
+
+          const std::string &s = id(train_json);
+          const bool stale = id(train_stale);
+          auto now = id(time_comp).now();
+
+          // A live answer is shown as it comes. A kept one is skipped forward
+          // to the first train that has not left yet. Times are compared
+          // within +-12 h, so 00:10 seen at 23:50 is still to come.
+          int first = 0;
+          if (stale && now.is_valid()) {
+            const int now_min = now.hour * 60 + now.minute;
+            for (;; first++) {
+              int h, m;
+              if (sscanf(json_get(s, "departure_current", first).c_str(), "%d:%d", &h, &m) != 2)
+                break;
+              int diff = h * 60 + m - now_min;
+              if (diff < -720) diff += 1440;
+              if (diff > 720) diff -= 1440;
+              if (diff >= 0) break;
+            }
+          }
+
+          const std::string d1_raw_delay = json_get(s, "delay", first);
+          lv_label_set_text(id(val_dep1_time),  json_get(s, "departure_current", first).c_str());
+          lv_label_set_text(id(val_dep1_delay), fmt_delay(d1_raw_delay).c_str());
+          lv_label_set_text(id(val_dep1_dir),   json_get(s, "richtung", first).c_str());
+          lv_label_set_text(id(val_dep2_time),  json_get(s, "departure_current", first + 1).c_str());
+          lv_label_set_text(id(val_dep2_delay), fmt_delay(json_get(s, "delay", first + 1)).c_str());
+          lv_label_set_text(id(val_dep2_dir),   json_get(s, "richtung", first + 1).c_str());
+
+          if (stale && !id(train_stand).empty()) {
+            lv_label_set_text(id(lbl_train_status), ("Stand " + id(train_stand)).c_str());
+            lv_obj_set_style_text_color(id(lbl_train_status), lv_color_hex(0xFBBF24), LV_PART_MAIN);
+          } else {
+            lv_label_set_text(id(lbl_train_status), "Abfahrt");
+            lv_obj_set_style_text_color(id(lbl_train_status), lv_color_hex(0x64748B), LV_PART_MAIN);
+          }
+
+          // A kept delay is old news: it must not put the full-screen
+          // "Zug +N min" overlay up, or hold it there.
+          id(train_delay_min) = (stale || d1_raw_delay == "--")
+                                    ? 0 : static_cast<int>(atof(d1_raw_delay.c_str()));
           id(update_delay_overlay).execute();
+
+interval:
+  - interval: 60s
+    then:
+      - script.execute: render_trains
+
+text_sensor:
+  - platform: homeassistant
+    id: zuzenhausen_departures_raw
+    entity_id: sensor.zuzenhausen_abfahrten_esphome
+    on_value:
+      - lambda: |-
+          // Anything without a departure in it — "unavailable", "unknown", an
+          // empty list — is the backend being down, not an empty timetable.
+          if (x.find("\"departure_current\"") != std::string::npos) {
+            id(train_json) = x;
+            id(train_stale) = false;
+            auto now = id(time_comp).now();
+            if (now.is_valid()) {
+              char buf[6];
+              snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
+              id(train_stand) = buf;
+            }
+          } else {
+            id(train_stale) = true;
+          }
+      - script.execute: render_trains
 
 lvgl:
   widgets:
@@ -102,7 +181,9 @@ lvgl:
               text: "Zug"
               text_font: montserrat_14_de
               text_color: 0x64748B
+          # "Abfahrt", or "Stand HH:MM" while the departures are kept ones.
           - label:
+              id: lbl_train_status
               x: 230
               y: 10
               text: "Abfahrt"
