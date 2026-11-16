@@ -5,11 +5,12 @@
 #   y   4 …  28   "HEUTE" ................. [icon] Verbrauch    NN.N kWh
 #   y  32 … 104   four tiles: PV | Eingespeist | Netzbezug | Wärme
 #   y 110         hairline rule
-#   y 114 … 131   "12 MONATE"  MWh ..... Autark  Monat NN %  Gesamt NN %
+#   y 114 … 131   MWh  [#] PV  [#] Netz ... Autark  Monat NN %  Gesamt NN %
 #   y 141 … 196   plot area, baseline 196, 55 px of headroom
 #                 x 12 …  32   axis gutter, one label per gridline
 #                 x 36 … 363   gridlines, every 0.5 MWh
-#                 x 38 … 357   twelve columns, pitch 27, 22 px wide
+#                 x 38 … 357   twelve months, pitch 27: a 10 px PV bar and
+#                              a 10 px Netz bar, 2 px apart
 #   y 197         baseline rule
 #   y 200 … 215   month labels
 #
@@ -38,11 +39,16 @@
 # number — the headline is deliberately *not* the four tiles added up: the tiles
 # are meter readings at the property line, the headline is the house.
 #
-# The chart below is stacked: green is what the house covered itself
-# (PV minus Einspeisung), red is what it took from the grid. Bar height is the
-# month's total consumption, so the seasons show; the green fraction is that
-# month's autarky. ESPHome's LVGL has no chart widget, so each segment is a
-# plain obj whose y and height the lambda sets.
+# The chart below answers one question per month: how much of what the house
+# used came off the roof, and how much from the grid. So each month is two bars
+# side by side, both standing on the baseline — green is what the house covered
+# itself (PV minus Einspeisung), red is what it bought. They used to be stacked,
+# which showed the month's total but left the red part floating on top of the
+# green one, readable against nothing; side by side, each reads off the axis and
+# the taller one wins — green through the summer, red through the winter. The
+# legend in the chart's header says which is which in the bars' own colours.
+# ESPHome's LVGL has no chart widget, so each bar is a plain obj whose y and
+# height the lambda sets.
 #
 # **A bar height needs a scale, or it only says "more than that other month".**
 # Hence the gridlines: one every 0.5 MWh, each labelled in the gutter on the
@@ -237,8 +243,10 @@ script:
           // the next one, which is what puts the top gridline at the top of the
           // plot. Values are kWh here, MWh only in the label.
           float top = 1.0f;
-          for (int k = 0; k < n; k++)
-            if (e[k] + g[k] > top) top = e[k] + g[k];
+          for (int k = 0; k < n; k++) {
+            if (e[k] > top) top = e[k];
+            if (g[k] > top) top = g[k];
+          }
           float step = 500.0f;
           while (top > step * 4.0f) step *= 2.0f;
           const int lines = (int) ceilf(top / step);
@@ -270,33 +278,21 @@ script:
           static float slot_total[12];
           for (int i = 0; i < 12; i++) {
             const int k = i - first;
-            int h_total = 0, h_eigen = 0;
-            slot_total[i] = k >= 0 ? e[k] + g[k] : 0.0f;
-            if (k >= 0) {
-              const float total = slot_total[i];
-              h_total = (int) lroundf(MAXH * total / scale);
-              h_eigen = total > 0.0f ? (int) lroundf(h_total * e[k] / total) : 0;
-            }
-            const int h_netz = h_total - h_eigen;
-
-            // Green is the *whole* bar and red caps it, rather than the two
-            // being stacked edge to edge. Both are rounded, so an edge-to-edge
-            // join would let the card background through the corners where they
-            // meet; this way red's rounded underside sits on green.
-            if (h_total > 0) {
-              lv_obj_set_y(green[i], BASE - h_total);
-              lv_obj_set_height(green[i], h_total);
-              lv_obj_clear_flag(green[i], LV_OBJ_FLAG_HIDDEN);
-            } else {
-              lv_obj_add_flag(green[i], LV_OBJ_FLAG_HIDDEN);
-            }
-
-            if (h_netz > 0) {
-              lv_obj_set_y(red[i], BASE - h_total);
-              lv_obj_set_height(red[i], h_netz);
-              lv_obj_clear_flag(red[i], LV_OBJ_FLAG_HIDDEN);
-            } else {
-              lv_obj_add_flag(red[i], LV_OBJ_FLAG_HIDDEN);
+            const float v[2] = { k >= 0 ? e[k] : 0.0f, k >= 0 ? g[k] : 0.0f };
+            lv_obj_t *bar[2] = { green[i], red[i] };
+            slot_total[i] = v[0] + v[1];
+            for (int j = 0; j < 2; j++) {
+              if (v[j] <= 0.0f) {
+                lv_obj_add_flag(bar[j], LV_OBJ_FLAG_HIDDEN);
+                continue;
+              }
+              // Never less than a pixel: a December with 4 kWh off the roof
+              // still had a roof.
+              int h = (int) lroundf(MAXH * v[j] / scale);
+              if (h < 1) h = 1;
+              lv_obj_set_y(bar[j], BASE - h);
+              lv_obj_set_height(bar[j], h);
+              lv_obj_clear_flag(bar[j], LV_OBJ_FLAG_HIDDEN);
             }
           }
 
@@ -759,27 +755,38 @@ lvgl:
               scrollable: false
 
           # ── Chart header ─────────────────────────────────────
-          # The two percentages are green because green is what they measure:
-          # they double as the legend for the lower half of every bar. They are
-          # read from across the room, so they get 14 px; the two words that
-          # only label them stay at 12 px, dropped 2 px onto the same baseline.
+          # Unit, legend, autarky. The gutter is only 20 px wide, so the
+          # gridline labels are bare numbers and the unit is stated once here.
+          # The legend is a swatch in each bar's colour with its word in the
+          # same colour; it takes the place of a "12 MONATE" title, which the
+          # twelve month names under the chart already say. The two percentages
+          # are green because they are the green bars' share. They are read
+          # from across the room, so they get 14 px; everything that only
+          # labels something stays at 12 px, dropped 2 px onto the same
+          # baseline.
           - label:
               x: 12
-              y: 116
-              text: "12 MONATE"
-              styles: [t_caption_sm]
-              text_align: left
-          # The unit of the axis, stated once: the gutter is only 20 px wide, so
-          # the gridline labels are bare numbers. 5 px after "12 MONATE" (69 px)
-          # and 12 px before "Autark", so it groups with the title, not with the
-          # legend.
-          - label:
-              x: 86
               y: 116
               text: "MWh"
               styles: [t_caption_sm]
               text_align: left
               text_color: 0x64748B
+          - obj:   { x: 50, y: 120, width: 8, height: 8, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false }
+          - label:
+              x: 61
+              y: 116
+              text: "PV"
+              styles: [t_caption_sm]
+              text_align: left
+              text_color: 0x4ADE80
+          - obj:   { x: 84, y: 120, width: 8, height: 8, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false }
+          - label:
+              x: 95
+              y: 116
+              text: "Netz"
+              styles: [t_caption_sm]
+              text_align: left
+              text_color: 0xF87171
           - label:
               x: 130
               y: 116
@@ -830,35 +837,35 @@ lvgl:
           - label: { id: hist_axis_3, x: 12, y: 190, width: 20, text: "", styles: [t_caption_sm], text_align: right, text_color: 0x64748B, hidden: true }
 
           # ── Chart ────────────────────────────────────────────
-          # Twelve columns at pitch 27 starting at x=38, 22 px wide — the pitch
-          # the axis gutter leaves, keeping the same bar-to-gap proportion as
-          # the 23-in-29 columns it replaces. Baseline is y=196 with 55 px of
-          # headroom; y and height are set in refresh_history_chart, so the
-          # values here are placeholders.
-          - obj:  { id: hist_eigen_0,  x: 38,  y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_0,   x: 38,  y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_1,  x: 65,  y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_1,   x: 65,  y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_2,  x: 92,  y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_2,   x: 92,  y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_3,  x: 119, y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_3,   x: 119, y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_4,  x: 146, y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_4,   x: 146, y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_5,  x: 173, y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_5,   x: 173, y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_6,  x: 200, y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_6,   x: 200, y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_7,  x: 227, y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_7,   x: 227, y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_8,  x: 254, y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_8,   x: 254, y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_9,  x: 281, y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_9,   x: 281, y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_10, x: 308, y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_10,  x: 308, y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_eigen_11, x: 335, y: 195, width: 22, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
-          - obj:  { id: hist_netz_11,  x: 335, y: 194, width: 22, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          # Twelve months at pitch 27 starting at x=38, the pitch the axis
+          # gutter leaves. Each is a pair: PV 10 px wide, Netz 10 px wide 12 px
+          # to its right, leaving 5 px to the next month so a pair reads as one
+          # month. Baseline is y=196 with 55 px of headroom; y and height are
+          # set in refresh_history_chart, so the values here are placeholders.
+          - obj:  { id: hist_eigen_0,  x: 38,  y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_0,   x: 50,  y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_1,  x: 65,  y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_1,   x: 77,  y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_2,  x: 92,  y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_2,   x: 104, y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_3,  x: 119, y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_3,   x: 131, y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_4,  x: 146, y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_4,   x: 158, y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_5,  x: 173, y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_5,   x: 185, y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_6,  x: 200, y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_6,   x: 212, y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_7,  x: 227, y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_7,   x: 239, y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_8,  x: 254, y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_8,   x: 266, y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_9,  x: 281, y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_9,   x: 293, y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_10, x: 308, y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_10,  x: 320, y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_eigen_11, x: 335, y: 195, width: 10, height: 1, bg_color: 0x4ADE80, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
+          - obj:  { id: hist_netz_11,  x: 347, y: 195, width: 10, height: 1, bg_color: 0xF87171, border_width: 0, radius: 2, pad_all: 0, scrollable: false, hidden: true }
 
           # ── Baseline ─────────────────────────────────────────
           # The bars stand on this rather than floating over the card, which is
