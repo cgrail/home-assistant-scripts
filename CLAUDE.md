@@ -40,7 +40,7 @@ Each flow is a dim `line:` wire plus bright three-point `line:` chevrons ("arrow
 Every box in the panel repeats the same three-part rhythm — **icon, big value, caption** — from the `t_icon` / `t_value` / `t_caption` styles, so the eye finds the number in the same place everywhere; only the accent colour (icon, caption, card border) changes per box. Cards themselves are `styles: [card, card_<accent>]`. The Haus node is the deliberate exception: it spans the whole middle row and runs that rhythm *horizontally* (icon + value sharing a baseline at the left, caption right-aligned), which frees the height for the two share rows below it.
 
 - A widget whose state depends on **two** sensors (the battery icon needs charge *and* SOC; both bars need the house total *and* a second reading) has to be driven from a `script:` that every contributing sensor executes, otherwise each sensor half-updates it.
-- Icons that can be "off" (PV, Einspeisung, Netzbezug, WP, Buzz) are recoloured to `0x707070` in the same lambda that normalises the reading — the dim icon and the `0.0 kW` next to it then always agree.
+- Icons that can be "off" (PV, Einspeisung, Netzbezug, WP, Buzz) are recoloured to `0x706B60` in the same lambda that normalises the reading — the dim icon and the `0.0 kW` next to it then always agree.
 - The two `bar:` widgets inside the Haus node are shares of the same house load, and their *track* colour carries the other half of the split: `bar_autark` is green on red (own supply vs grid), `bar_haushalt` is white on grey (household vs heat pump). Each sits in a `label label bar` row — *what it is, how much, how much of the total* — so no bar has to be decoded from its colour alone, and the household reading is stated as a share of the house instead of as a card of its own labelled by what it excludes.
 
 ### `geekmagic.yaml`
@@ -52,6 +52,7 @@ Seen on the device, Nov 2026: the CrowPanel shows dark colours far brighter than
 
 - **A dark colour has to be a pure hue**: zero in every channel it should not have (`0x700000`, `0x002000`), not a "tinted near-black".
 - **Mid-tones with a blue component shift too**: `0x4ADE80` reads mint and `0xF87171` reads pink. Take the blue out if the colour is meant to be green or red.
+- **Near-black is navy, and white is cool.** A tile at `0x001000` showed as dark blue next to green cards, and `0xFFFFFF` text has a blue cast. So nothing is darker than a clearly green `0x001400`, and "white" is `0xFFF4E0` with the greys warmed to match.
 - The pin map is not the cause — it is identical to ESPHome's built-in `CROWPANEL-ADVANCE-7` model.
 
 ## LVGL gotchas
