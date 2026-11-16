@@ -96,7 +96,7 @@ lvgl:
         y: 0
         width: 800
         height: 70
-        bg_color: 0x0B1120
+        bg_color: 0x07150E
         radius: 0
         border_width: 0
         pad_all: 0

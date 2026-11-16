@@ -169,10 +169,10 @@ lvgl:
         y: 80
         width: 375
         height: 90
-        bg_color: 0x151F32
+        bg_color: 0x0F2418
         radius: 12
         border_width: 1
-        border_color: 0x1E293B
+        border_color: 0x7C5E1C
         pad_all: 0
         widgets:
           - label:

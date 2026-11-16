@@ -8,6 +8,7 @@ packages:
   history: !include packages/history.yaml
   live_panel: !include packages/live_panel.yaml
   room_temp: !include packages/room_temp.yaml
+  christmas: !include packages/christmas.yaml
   overlays: !include packages/overlays.yaml
 
 esp32:
@@ -123,8 +124,8 @@ font:
 lvgl:
   log_level: INFO
   color_depth: 16
-  # Very dark slate background for the whole screen
-  bg_color: 0x0B1120 
+  # Very dark fir green background for the whole screen
+  bg_color: 0x07150E
   buffer_size: 10%
   full_refresh: false
   text_font: montserrat_20

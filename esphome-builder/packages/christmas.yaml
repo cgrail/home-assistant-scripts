@@ -1,0 +1,123 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Christmas — everything seasonal that is a widget
+#
+#   y  3 … 12   a string of lights along the top edge of the screen
+#   y 12 … 33   fir tree and the countdown to Heiligabend, above the date
+#   y 13 … 40   four snowflakes in the empty middle of the header
+#
+# The other half of the look is the palette: fir green screen and cards, gold
+# card borders. That is plain colour values in the other packages and in the
+# device file, all changed in the one commit that added this file.
+#
+# To take Christmas down again: remove the `christmas:` line from `packages:`
+# in the device file for the decorations, and revert that commit for the
+# colours.
+#
+# The widgets sit on the screen itself, over the header, and this package is
+# included before `overlays` so the full-screen warnings still cover them.
+# Nothing here moves: the lights only change brightness, once a second, so each
+# tick repaints twenty 28 px squares and nothing else.
+#
+# The icons get a font of their own instead of three more glyphs in mdi_20:
+# removing the package then removes them from the flash as well. Codepoints are
+# looked up in the cached MaterialDesign webfont, never guessed — see CLAUDE.md.
+# ─────────────────────────────────────────────────────────────────────────────
+
+font:
+  - file: "https://github.com/Templarian/MaterialDesign-Webfont/raw/master/fonts/materialdesignicons-webfont.ttf"
+    id: mdi_xmas
+    size: 20
+    glyphs:
+      - "\U000F0405"  # pine-tree
+      - "\U000F0717"  # snowflake
+      - "\U000F0F2A"  # snowflake-variant
+
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          // Running lights: every third bulb is dim, and the dim one moves
+          // along by one each second.
+          static int tick = 0;
+          tick++;
+          lv_obj_t *bulb[20] = {
+            id(xmas_bulb_0), id(xmas_bulb_1), id(xmas_bulb_2), id(xmas_bulb_3),
+            id(xmas_bulb_4), id(xmas_bulb_5), id(xmas_bulb_6), id(xmas_bulb_7),
+            id(xmas_bulb_8), id(xmas_bulb_9), id(xmas_bulb_10), id(xmas_bulb_11),
+            id(xmas_bulb_12), id(xmas_bulb_13), id(xmas_bulb_14), id(xmas_bulb_15),
+            id(xmas_bulb_16), id(xmas_bulb_17), id(xmas_bulb_18), id(xmas_bulb_19) };
+          for (int i = 0; i < 20; i++)
+            lv_obj_set_style_opa(bulb[i], (i + tick) % 3 == 0 ? LV_OPA_30 : LV_OPA_COVER,
+                                 LV_PART_MAIN);
+
+          // Days to 24 December. The text is only written when the number
+          // changes: a label repaints on every set_text, same text or not.
+          // shortcut: in January this counts ~357 days to the next one; take
+          // the package out after the holidays rather than teach it seasons.
+          auto now = id(time_comp).now();
+          if (!now.is_valid()) return;
+          const bool leap = now.year % 4 == 0 && (now.year % 100 != 0 || now.year % 400 == 0);
+          const int days = (leap ? 359 : 358) - now.day_of_year;
+          static int shown = -1000;
+          if (days == shown) return;
+          shown = days;
+          char buf[40];
+          if (days > 1)       snprintf(buf, sizeof(buf), "Noch %d Tage bis Heiligabend", days);
+          else if (days == 1) snprintf(buf, sizeof(buf), "Morgen ist Heiligabend");
+          else                snprintf(buf, sizeof(buf), "Frohe Weihnachten");
+          lv_label_set_text(id(xmas_countdown), buf);
+
+lvgl:
+  widgets:
+    # ── String of lights ───────────────────────────────────────────────────────
+    # The wire, then twenty bulbs at pitch 40 hanging just under it, cycling
+    # red / gold / green / blue. The glow is the box shadow in the bulb's own
+    # colour. Small objs need pad_all 0 and scrollable false or they sprout
+    # scrollbars — see CLAUDE.md.
+    - obj:   { x: 0, y: 3, width: 800, height: 1, bg_color: 0x1C3527, border_width: 0, radius: 0, pad_all: 0, scrollable: false }
+    - obj: { id: xmas_bulb_0, x: 16, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xEF4444, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xEF4444, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_1, x: 56, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFBBF24, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFBBF24, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_2, x: 96, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x22C55E, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x22C55E, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_3, x: 136, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x38BDF8, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x38BDF8, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_4, x: 176, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xEF4444, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xEF4444, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_5, x: 216, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFBBF24, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFBBF24, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_6, x: 256, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x22C55E, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x22C55E, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_7, x: 296, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x38BDF8, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x38BDF8, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_8, x: 336, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xEF4444, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xEF4444, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_9, x: 376, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFBBF24, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFBBF24, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_10, x: 416, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x22C55E, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x22C55E, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_11, x: 456, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x38BDF8, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x38BDF8, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_12, x: 496, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xEF4444, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xEF4444, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_13, x: 536, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFBBF24, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFBBF24, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_14, x: 576, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x22C55E, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x22C55E, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_15, x: 616, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x38BDF8, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x38BDF8, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_16, x: 656, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xEF4444, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xEF4444, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_17, x: 696, y: 4, width: 8, height: 8, radius: 4, bg_color: 0xFBBF24, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0xFBBF24, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_18, x: 736, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x22C55E, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x22C55E, shadow_opa: 80% }
+    - obj: { id: xmas_bulb_19, x: 776, y: 4, width: 8, height: 8, radius: 4, bg_color: 0x38BDF8, border_width: 0, pad_all: 0, scrollable: false, shadow_width: 10, shadow_color: 0x38BDF8, shadow_opa: 80% }
+
+    # ── Countdown ──────────────────────────────────────────────────────────────
+    # In the free strip above the date, left-aligned with it. The longest text,
+    # "Noch 38 Tage bis Heiligabend", is 208 px at 14 px and ends at x=392.
+    - label:
+        x: 160
+        y: 12
+        text: "\U000F0405"
+        text_font: mdi_xmas
+        text_color: 0x22C55E
+    - label:
+        id: xmas_countdown
+        x: 184
+        y: 16
+        text: ""
+        text_font: montserrat_14_de
+        text_color: 0xFBBF24
+
+    # ── Snow ───────────────────────────────────────────────────────────────────
+    # Right of the countdown and above the weather text, which is right-aligned
+    # to x=575 on the line below. Uneven on purpose: four flakes in a row at one
+    # height and one brightness read as a divider, not as snow.
+    - label: { x: 408, y: 18, text: "\U000F0717", text_font: mdi_xmas, text_color: 0xDBEAFE, text_opa: 70% }
+    - label: { x: 452, y: 13, text: "\U000F0F2A", text_font: mdi_xmas, text_color: 0xDBEAFE, text_opa: 40% }
+    - label: { x: 500, y: 20, text: "\U000F0717", text_font: mdi_xmas, text_color: 0xDBEAFE, text_opa: 55% }
+    - label: { x: 542, y: 14, text: "\U000F0F2A", text_font: mdi_xmas, text_color: 0xDBEAFE, text_opa: 85% }

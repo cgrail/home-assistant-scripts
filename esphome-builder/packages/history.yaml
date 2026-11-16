@@ -468,10 +468,10 @@ lvgl:
         y: 180
         width: 375
         height: 220
-        bg_color: 0x151F32
+        bg_color: 0x0F2418
         radius: 12
         border_width: 1
-        border_color: 0x1E293B
+        border_color: 0x7C5E1C
         pad_all: 0
         scrollable: false
         widgets:
@@ -561,7 +561,7 @@ lvgl:
               min_value: 0
               max_value: 100
               value: 0
-              bg_color: 0x1E293B
+              bg_color: 0x1C3527
               radius: 2
               pad_all: 0
               scrollable: false
@@ -617,7 +617,7 @@ lvgl:
               min_value: 0
               max_value: 100
               value: 0
-              bg_color: 0x1E293B
+              bg_color: 0x1C3527
               radius: 2
               pad_all: 0
               scrollable: false
@@ -673,7 +673,7 @@ lvgl:
               min_value: 0
               max_value: 100
               value: 0
-              bg_color: 0x1E293B
+              bg_color: 0x1C3527
               radius: 2
               pad_all: 0
               scrollable: false
@@ -734,7 +734,7 @@ lvgl:
               min_value: 0
               max_value: 100
               value: 0
-              bg_color: 0x1E293B
+              bg_color: 0x1C3527
               radius: 2
               pad_all: 0
               scrollable: false
@@ -748,7 +748,7 @@ lvgl:
               y: 110
               width: 351
               height: 1
-              bg_color: 0x1E293B
+              bg_color: 0x1C3527
               border_width: 0
               radius: 0
               pad_all: 0
@@ -820,15 +820,15 @@ lvgl:
           # ── Gridlines and axis ───────────────────────────────
           # One line per 0.5 MWh, spanning the plot from just clear of the
           # gutter to the card's own right margin. A step brighter than the two
-          # hairline rules (0x1E293B), which disappear against the card at this
+          # hairline rules (0x1C3527), which disappear against the card at this
           # width — a gridline nobody can follow across to the bar is not worth
           # the pixel. They are declared *before* the bars so a bar covers them.
           # y, text and visibility come from refresh_history_chart — the values
           # here are placeholders.
-          - obj:   { id: hist_grid_0, x: 36, y: 195, width: 327, height: 1, bg_color: 0x334155, border_width: 0, radius: 0, pad_all: 0, scrollable: false, hidden: true }
-          - obj:   { id: hist_grid_1, x: 36, y: 195, width: 327, height: 1, bg_color: 0x334155, border_width: 0, radius: 0, pad_all: 0, scrollable: false, hidden: true }
-          - obj:   { id: hist_grid_2, x: 36, y: 195, width: 327, height: 1, bg_color: 0x334155, border_width: 0, radius: 0, pad_all: 0, scrollable: false, hidden: true }
-          - obj:   { id: hist_grid_3, x: 36, y: 195, width: 327, height: 1, bg_color: 0x334155, border_width: 0, radius: 0, pad_all: 0, scrollable: false, hidden: true }
+          - obj:   { id: hist_grid_0, x: 36, y: 195, width: 327, height: 1, bg_color: 0x2F4D3C, border_width: 0, radius: 0, pad_all: 0, scrollable: false, hidden: true }
+          - obj:   { id: hist_grid_1, x: 36, y: 195, width: 327, height: 1, bg_color: 0x2F4D3C, border_width: 0, radius: 0, pad_all: 0, scrollable: false, hidden: true }
+          - obj:   { id: hist_grid_2, x: 36, y: 195, width: 327, height: 1, bg_color: 0x2F4D3C, border_width: 0, radius: 0, pad_all: 0, scrollable: false, hidden: true }
+          - obj:   { id: hist_grid_3, x: 36, y: 195, width: 327, height: 1, bg_color: 0x2F4D3C, border_width: 0, radius: 0, pad_all: 0, scrollable: false, hidden: true }
           # Right-aligned into the 20 px gutter: "0.5" is 18 px at 12 px, and
           # aligning right keeps the decimal points under each other.
           - label: { id: hist_axis_0, x: 12, y: 190, width: 20, text: "", styles: [t_caption_sm], text_align: right, text_color: 0x64748B, hidden: true }
@@ -876,7 +876,7 @@ lvgl:
               y: 197
               width: 351
               height: 1
-              bg_color: 0x1E293B
+              bg_color: 0x1C3527
               border_width: 0
               radius: 0
               pad_all: 0

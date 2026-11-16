@@ -16,11 +16,19 @@ Do not run esphome commands. The user does it on it's own.
 ## Devices
 
 ### `crowpanel-advance-7-hmi-esp32-s3.yaml`
-800×480 RGB panel, ESP32-S3 with octal PSRAM. Split into `packages/` (`header`, `trains`, `history`, `live_panel`, `room_temp`, `overlays`); every package contributes to the same merged `lvgl:` widget tree, so widget ids must be unique across all of them. Uses **LVGL** for the UI — all widgets are declared statically under the `lvgl:` key; sensors update them via `on_value` callbacks using `lvgl.label.update` / `lvgl.arc.update` / `lvgl.widget.show|hide`.
+800×480 RGB panel, ESP32-S3 with octal PSRAM. Split into `packages/` (`header`, `trains`, `history`, `live_panel`, `room_temp`, `christmas`, `overlays`); every package contributes to the same merged `lvgl:` widget tree, so widget ids must be unique across all of them. Uses **LVGL** for the UI — all widgets are declared statically under the `lvgl:` key; sensors update them via `on_value` callbacks using `lvgl.label.update` / `lvgl.arc.update` / `lvgl.widget.show|hide`.
 
 - Do not use on_boot to draw a canvas. It does not work.
 - For lvgl.label.update use the text, format and args way of updating values. Do calculations like division in args. When possible use this method instead of lambda.
 - `args:` entries are raw C++ expressions, so `args: ['id(pv_kw)']` prints a global. Sanitising NaN once into a global beats an `isnan` guard around every label.
+
+#### Christmas (`packages/christmas.yaml`)
+Seasonal. The package holds the decorations — string of lights, countdown to Heiligabend, snowflakes — and is taken down by removing its line from `packages:`. The fir-green and gold palette is plain colour values in the other packages, all changed in the commit that added the package; revert that commit for the slate palette. Data colours (green own supply, red grid, amber PV) are not part of the theme and must stay as they are.
+
+- `overlays` has to stay the last package: the widget list is merged in package order and the full-screen warnings must cover everything.
+
+#### Train card (`packages/trains.yaml`)
+The departures sensor is fed by a web backend that drops out. The card keeps the last good answer, skips trains whose time has passed, and shows `Stand HH:MM` instead of `Abfahrt` while it does. The sensor is defined in Home Assistant, not in this repo.
 
 #### Energy flow diagram (`packages/live_panel.yaml`)
 Each flow is a dim `line:` wire plus bright three-point `line:` chevrons ("arrows") that one 50 ms `interval:` lambda moves along it with `lv_obj_set_pos()`, fading `line_opa` in at the source and out at the destination. The lambda owns all of it: the sensors only normalise their reading to kW into a global, and visibility, wire width, arrow direction and arrow speed are derived centrally from those — so a flow can never contradict the number printed next to it. Wire endpoints in the YAML and the `PATH[]` table in the lambda have to be kept in sync by hand.
