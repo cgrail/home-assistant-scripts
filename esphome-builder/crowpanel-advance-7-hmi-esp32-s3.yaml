@@ -124,8 +124,8 @@ font:
 lvgl:
   log_level: INFO
   color_depth: 16
-  # Very dark fir green background for the whole screen
-  bg_color: 0x07150E
+  # Deep Christmas red behind everything; the cards on it stay fir green
+  bg_color: 0x640E18
   buffer_size: 10%
   full_refresh: false
   text_font: montserrat_20
