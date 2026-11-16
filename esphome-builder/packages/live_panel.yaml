@@ -11,7 +11,7 @@
 # the exception: it is the hub, so it lays that rhythm out horizontally and
 # spends the height it wins on the two shares the house total splits into,
 # each a labelled row of its own with a bar that puts it in proportion:
-#   Haushalt  slate vs orange — the part of the load that is not the heat pump
+#   Haushalt  grey vs orange  — the part of the load that is not the heat pump
 #   Autark    green vs red    — the part of the load not taken from the grid
 #
 # Every connection is built from two kinds of widgets:
@@ -85,17 +85,17 @@ script:
           else if (soc >= 66.0f) icon = "\xF3\xB1\x8A\xA3";  // battery-high
           else if (soc >= 33.0f) icon = "\xF3\xB1\x8A\xA2";  // battery-medium
           else                   icon = "\xF3\xB1\x8A\xA1";  // battery-low
-          const uint32_t tint = charging ? 0x4ADE80 : (low ? 0xF87171 : 0x22D3EE);
+          const uint32_t tint = charging ? 0x2EDC3C : (low ? 0xF83030 : 0xF8FAFC);
           lv_label_set_text(id(icon_akku), icon);
           lv_obj_set_style_text_color(id(icon_akku), lv_color_hex(tint), LV_PART_MAIN);
-          lv_obj_set_style_arc_color(id(arc_akku), lv_color_hex(low ? 0xF87171 : 0x22D3EE),
+          lv_obj_set_style_arc_color(id(arc_akku), lv_color_hex(low ? 0xF83030 : 0xF8FAFC),
                                      LV_PART_INDICATOR);
           // Idle batteries say "Akku", moving ones say how fast. The direction
           // is already in the icon, so the number stays unsigned and narrow
           // enough to clear the ring.
           if (fabsf(p) < 0.05f) {
             lv_label_set_text(id(cap_akku), "Akku");
-            lv_obj_set_style_text_color(id(cap_akku), lv_color_hex(0x94A3B8), LV_PART_MAIN);
+            lv_obj_set_style_text_color(id(cap_akku), lv_color_hex(0xC4D4C8), LV_PART_MAIN);
           } else {
             char buf[16];
             snprintf(buf, sizeof(buf), "%.1f kW", fabsf(p));
@@ -136,7 +136,7 @@ sensor:
       - lambda: |-
           id(pv_kw) = isnan(x) ? 0.0f : x / 1000.0f;
           lv_obj_set_style_text_color(id(icon_pv),
-              lv_color_hex(id(pv_kw) > 0.05f ? 0xFBBF24 : 0x475569), LV_PART_MAIN);
+              lv_color_hex(id(pv_kw) > 0.05f ? 0xFBBF24 : 0x5A7560), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_pv
           text:
@@ -150,7 +150,7 @@ sensor:
       - lambda: |-
           id(export_kw) = isnan(x) ? 0.0f : x / 1000.0f;
           lv_obj_set_style_text_color(id(icon_export),
-              lv_color_hex(id(export_kw) > 0.05f ? 0x4ADE80 : 0x475569), LV_PART_MAIN);
+              lv_color_hex(id(export_kw) > 0.05f ? 0x2EDC3C : 0x5A7560), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_eingespeist
           text:
@@ -164,7 +164,7 @@ sensor:
       - lambda: |-
           id(import_kw) = isnan(x) ? 0.0f : x / 1000.0f;
           lv_obj_set_style_text_color(id(icon_grid),
-              lv_color_hex(id(import_kw) > 0.05f ? 0xF87171 : 0x475569), LV_PART_MAIN);
+              lv_color_hex(id(import_kw) > 0.05f ? 0xF83030 : 0x5A7560), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_netz
           text:
@@ -198,7 +198,7 @@ sensor:
       - lambda: |-
           id(wp_kw) = isnan(x) ? 0.0f : x;
           lv_obj_set_style_text_color(id(icon_wp),
-              lv_color_hex(id(wp_kw) > 0.05f ? 0xFB923C : 0x475569), LV_PART_MAIN);
+              lv_color_hex(id(wp_kw) > 0.05f ? 0xFB923C : 0x5A7560), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_wp
           text:
@@ -212,7 +212,7 @@ sensor:
       - lambda: |-
           id(buzz_kw) = isnan(x) ? 0.0f : x / 1000.0f;
           lv_obj_set_style_text_color(id(icon_buzz),
-              lv_color_hex(id(buzz_kw) > 0.05f ? 0xA78BFA : 0x475569), LV_PART_MAIN);
+              lv_color_hex(id(buzz_kw) > 0.05f ? 0xBEF264 : 0x5A7560), LV_PART_MAIN);
       - lvgl.label.update:
           id: val_buzz
           text:
@@ -481,21 +481,21 @@ lvgl:
     # Cards: one dark inset panel, tinted only by the border so the accent
     # colour of a box is stated once and never repeated per widget.
     - id: card
-      bg_color: 0x0B1C13
-      bg_grad_color: 0x08140D
+      bg_color: 0x001000
+      bg_grad_color: 0x000800
       bg_grad_dir: VER
       radius: 10
       border_width: 1
-      border_color: 0x234231
+      border_color: 0x004400
       pad_all: 0
     - id: card_solar
-      border_color: 0x3D3418
+      border_color: 0x4A3C00
     - id: card_export
-      border_color: 0x1B4030
+      border_color: 0x006400
     - id: card_grid
-      border_color: 0x3F2222
+      border_color: 0x640000
     - id: card_heat
-      border_color: 0x3D2B17
+      border_color: 0x552A00
 
     # The three text roles every box is built from.
     - id: t_icon
@@ -510,7 +510,7 @@ lvgl:
       text_align: center
     - id: t_caption
       text_font: montserrat_14_de
-      text_color: 0x94A3B8
+      text_color: 0xC4D4C8
       text_align: center
     # Caption for the two arcs. Inside a ring the line that clears least is not
     # the widest part of the text but its bottom corners, which run into the
@@ -518,7 +518,7 @@ lvgl:
     # pixel and looks bitten off, at 12 px it clears it by ~4 px.
     - id: t_caption_sm
       text_font: montserrat_12_de
-      text_color: 0x94A3B8
+      text_color: 0xC4D4C8
       text_align: center
 
     # Shared look of the arrows: the stroke of the chevron and one style per
@@ -529,15 +529,15 @@ lvgl:
     - id: arrow_pv
       line_color: 0xFBBF24
     - id: arrow_export
-      line_color: 0x4ADE80
+      line_color: 0x2EDC3C
     - id: arrow_grid
-      line_color: 0xF87171
+      line_color: 0xF83030
     - id: arrow_akku
-      line_color: 0x22D3EE
+      line_color: 0xF8FAFC
     - id: arrow_wp
       line_color: 0xFB923C
     - id: arrow_buzz
-      line_color: 0xA78BFA
+      line_color: 0xBEF264
 
   widgets:
     # ── TOP RIGHT: Live ──────────────────────────────────────
@@ -546,10 +546,10 @@ lvgl:
         y: 80
         width: 375
         height: 320
-        bg_color: 0x0F2418
+        bg_color: 0x002000
         radius: 12
         border_width: 1
-        border_color: 0x7C5E1C
+        border_color: 0x7C5E00
         pad_all: 0
         scrollable: false
         widgets:
@@ -605,13 +605,13 @@ lvgl:
               y: 6
               text: "\U000F192C"
               styles: [t_icon]
-              text_color: 0x4ADE80
+              text_color: 0x2EDC3C
           - label:
               x: 157
               y: 8
               text: "Einspeisung"
               styles: [t_caption]
-              text_color: 0x4ADE80
+              text_color: 0x2EDC3C
           - label:
               id: val_eingespeist
               x: 130
@@ -626,13 +626,13 @@ lvgl:
               y: 6
               text: "\U000F192D"
               styles: [t_icon]
-              text_color: 0xF87171
+              text_color: 0xF83030
           - label:
               x: 284
               y: 8
               text: "Netzbezug"
               styles: [t_caption]
-              text_color: 0xF87171
+              text_color: 0xF83030
           - label:
               id: val_netz
               x: 254
@@ -655,12 +655,12 @@ lvgl:
               width: 235
               height: 80
               radius: 14
-              bg_color: 0x11314D
-              bg_grad_color: 0x0C2038
+              bg_color: 0x004800
+              bg_grad_color: 0x003000
               bg_grad_dir: VER
               border_width: 2
-              border_color: 0x38BDF8
-              shadow_color: 0x38BDF8
+              border_color: 0xF8FAFC
+              shadow_color: 0xF8FAFC
               shadow_width: 14
               shadow_opa: 35%
               pad_all: 0
@@ -670,7 +670,7 @@ lvgl:
               y: 111
               text: "\U000F1903"
               styles: [t_icon]
-              text_color: 0x38BDF8
+              text_color: 0xF8FAFC
           - label:
               id: val_gesamt
               x: 167
@@ -686,9 +686,9 @@ lvgl:
               text: "Haus Gesamt"
               styles: [t_caption]
               text_align: right
-              text_color: 0x38BDF8
+              text_color: 0xF8FAFC
 
-          # Row 1 — what the house draws besides the heat pump. Slate is that
+          # Row 1 — what the house draws besides the heat pump. Grey is that
           # household share, the orange remainder is the heat pump, which is
           # the orange card sitting directly underneath.
           - label:
@@ -714,12 +714,12 @@ lvgl:
               min_value: 0
               max_value: 100
               value: 100
-              bg_color: 0xB45309
+              bg_color: 0xB45300
               radius: 4
               pad_all: 0
               scrollable: false
               indicator:
-                bg_color: 0x94A3B8
+                bg_color: 0xC4D4C8
                 radius: 4
 
           # Row 2 — how much of that load the house covered itself: green is
@@ -747,12 +747,12 @@ lvgl:
               min_value: 0
               max_value: 100
               value: 100
-              bg_color: 0xB91C1C
+              bg_color: 0xB90000
               radius: 4
               pad_all: 0
               scrollable: false
               indicator:
-                bg_color: 0x4ADE80
+                bg_color: 0x2EDC3C
                 radius: 4
 
           # ── Akku arc ─────────────────────────────────────────
@@ -765,11 +765,11 @@ lvgl:
               value: 0
               min_value: 0
               max_value: 100
-              arc_color: 0x1C3527
+              arc_color: 0x003C00
               arc_width: 8
               arc_rounded: true
               indicator:
-                arc_color: 0x22D3EE
+                arc_color: 0xF8FAFC
                 arc_width: 8
                 arc_rounded: true
           - label:
@@ -779,7 +779,7 @@ lvgl:
               width: 80
               text: "\U000F008E"
               styles: [t_icon]
-              text_color: 0x22D3EE
+              text_color: 0xF8FAFC
           - label:
               id: val_akku
               x: 8
@@ -805,11 +805,11 @@ lvgl:
               value: 0
               min_value: 0
               max_value: 11
-              arc_color: 0x1C3527
+              arc_color: 0x003C00
               arc_width: 8
               arc_rounded: true
               indicator:
-                arc_color: 0xA78BFA
+                arc_color: 0xBEF264
                 arc_width: 8
                 arc_rounded: true
           - label:
@@ -819,7 +819,7 @@ lvgl:
               width: 80
               text: "\U000F0B6C"
               styles: [t_icon]
-              text_color: 0x475569
+              text_color: 0x5A7560
           - label:
               id: val_buzz
               x: 8
@@ -849,7 +849,7 @@ lvgl:
               width: 115
               text: "\U000F0238"
               styles: [t_icon]
-              text_color: 0x475569
+              text_color: 0x5A7560
           - label:
               id: val_wp
               x: 130
@@ -869,7 +869,7 @@ lvgl:
               y: 293
               text: "\U000F0709"
               styles: [t_icon_sm]
-              text_color: 0x64748B
+              text_color: 0xA8BDAC
           - label:
               id: val_wp_zyklen
               x: 169
@@ -878,7 +878,7 @@ lvgl:
               text: "-- Starts"
               styles: [t_caption]
               text_align: left
-              text_color: 0x64748B
+              text_color: 0xA8BDAC
 
           # ── Warmwasser card ──────────────────────────────────
           - obj:
@@ -914,7 +914,7 @@ lvgl:
               y: 293
               text: "\U000F0E02"
               styles: [t_icon_sm]
-              text_color: 0x64748B
+              text_color: 0xA8BDAC
           - label:
               id: val_wp_ruecklauf
               x: 274
@@ -923,7 +923,7 @@ lvgl:
               text: "Rücklauf"
               styles: [t_caption]
               text_align: left
-              text_color: 0x64748B
+              text_color: 0xA8BDAC
 
           # ── Wires ────────────────────────────────────────────
           # Declared before the arrows so the arrows are drawn on top of them.
@@ -934,7 +934,7 @@ lvgl:
               points:
                 - 48, 54
                 - 48, 104
-              line_color: 0x4A3A0C
+              line_color: 0x4A3A00
               line_width: 2
               line_rounded: true
               hidden: true
@@ -943,7 +943,7 @@ lvgl:
               points:
                 - 102, 28
                 - 128, 28
-              line_color: 0x17452C
+              line_color: 0x005000
               line_width: 2
               line_rounded: true
               hidden: true
@@ -952,7 +952,7 @@ lvgl:
               points:
                 - 96, 54
                 - 147, 104
-              line_color: 0x4A3A0C
+              line_color: 0x4A3A00
               line_width: 2
               line_rounded: true
               hidden: true
@@ -961,7 +961,7 @@ lvgl:
               points:
                 - 309, 54
                 - 309, 104
-              line_color: 0x4A2222
+              line_color: 0x5A0000
               line_width: 2
               line_rounded: true
               hidden: true
@@ -970,7 +970,7 @@ lvgl:
               points:
                 - 92, 148
                 - 126, 148
-              line_color: 0x0B4152
+              line_color: 0x3F4A41
               line_width: 2
               line_rounded: true
               hidden: true
@@ -979,7 +979,7 @@ lvgl:
               points:
                 - 187, 190
                 - 187, 224
-              line_color: 0x4A2C11
+              line_color: 0x4A2C00
               line_width: 2
               line_rounded: true
               hidden: true
@@ -988,7 +988,7 @@ lvgl:
               points:
                 - 150, 190
                 - 88, 226
-              line_color: 0x322A4D
+              line_color: 0x3A4A12
               line_width: 2
               line_rounded: true
               hidden: true

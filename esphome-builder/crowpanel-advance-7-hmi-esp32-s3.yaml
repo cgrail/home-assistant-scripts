@@ -124,8 +124,9 @@ font:
 lvgl:
   log_level: INFO
   color_depth: 16
-  # Deep Christmas red behind everything; the cards on it stay fir green
-  bg_color: 0x640E18
+  # Christmas red behind everything, with green cards on it. Pure red on
+  # purpose: this panel lifts dark colours, see "Panel colour" in CLAUDE.md.
+  bg_color: 0x700000
   buffer_size: 10%
   full_refresh: false
   text_font: montserrat_20

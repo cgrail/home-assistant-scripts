@@ -23,7 +23,7 @@ Do not run esphome commands. The user does it on it's own.
 - `args:` entries are raw C++ expressions, so `args: ['id(pv_kw)']` prints a global. Sanitising NaN once into a global beats an `isnan` guard around every label.
 
 #### Christmas (`packages/christmas.yaml`)
-Seasonal. The package holds the decorations — string of lights, countdown to Heiligabend, snowflakes — and is taken down by removing its line from `packages:`. The palette — deep red screen and header, fir-green cards, gold card borders — is plain colour values in the other packages; revert the palette commits (`git log --grep Christmas`) for the slate one. Red stops at the card edge: inside a card it means "from the grid". Data colours (green own supply, red grid, amber PV) are not part of the theme and must stay as they are.
+Seasonal. The package holds the decorations — string of lights, countdown to Heiligabend, snowflakes — and is taken down by removing its line from `packages:`. The palette is red and green with white and warm accents, and nothing from the blue side: red screen and header, green cards with gold borders, sage-grey secondary text, white for house, battery and train times, lime for Buzz. It is plain colour values in the other packages; revert the palette commits (`git log --grep Christmas`) for the slate one. Red inside a card still only means "from the grid", and amber is still PV and orange the heat pump.
 
 - `overlays` has to stay the last package: the widget list is merged in package order and the full-screen warnings must cover everything.
 
@@ -40,11 +40,19 @@ Each flow is a dim `line:` wire plus bright three-point `line:` chevrons ("arrow
 Every box in the panel repeats the same three-part rhythm — **icon, big value, caption** — from the `t_icon` / `t_value` / `t_caption` styles, so the eye finds the number in the same place everywhere; only the accent colour (icon, caption, card border) changes per box. Cards themselves are `styles: [card, card_<accent>]`. The Haus node is the deliberate exception: it spans the whole middle row and runs that rhythm *horizontally* (icon + value sharing a baseline at the left, caption right-aligned), which frees the height for the two share rows below it.
 
 - A widget whose state depends on **two** sensors (the battery icon needs charge *and* SOC; both bars need the house total *and* a second reading) has to be driven from a `script:` that every contributing sensor executes, otherwise each sensor half-updates it.
-- Icons that can be "off" (PV, Einspeisung, Netzbezug, WP, Buzz) are recoloured to `0x475569` in the same lambda that normalises the reading — the dim icon and the `0.0 kW` next to it then always agree.
-- The two `bar:` widgets inside the Haus node are shares of the same house load, and their *track* colour carries the other half of the split: `bar_autark` is green on red (own supply vs grid), `bar_haushalt` is slate on orange (household vs heat pump). Each sits in a `label label bar` row — *what it is, how much, how much of the total* — so no bar has to be decoded from its colour alone, and the household reading is stated as a share of the house instead of as a card of its own labelled by what it excludes.
+- Icons that can be "off" (PV, Einspeisung, Netzbezug, WP, Buzz) are recoloured to `0x5A7560` in the same lambda that normalises the reading — the dim icon and the `0.0 kW` next to it then always agree.
+- The two `bar:` widgets inside the Haus node are shares of the same house load, and their *track* colour carries the other half of the split: `bar_autark` is green on red (own supply vs grid), `bar_haushalt` is grey on orange (household vs heat pump). Each sits in a `label label bar` row — *what it is, how much, how much of the total* — so no bar has to be decoded from its colour alone, and the household reading is stated as a share of the house instead of as a card of its own labelled by what it excludes.
 
 ### `geekmagic.yaml`
 240×240 SPI panel, ESP8266 (memory-constrained). Uses polling canvas rendering inside a single `lambda:` block that redraws the entire screen every 10 s. No LVGL — everything is drawn with `it.printf()` / `it.strftime()`.
+
+## Panel colour
+
+Seen on the device, Nov 2026: the CrowPanel shows dark colours far brighter than their values suggest, so a small amount in a channel is not small on screen. `0x640E18`, meant as deep red, came out salmon, and `0x0F2418`, meant as dark fir green, came out teal — the few units of blue and green in them were lifted into plain view. The original slate palette (`0x0B1120`, `0x151F32`) reads as blue for the same reason.
+
+- **A dark colour has to be a pure hue**: zero in every channel it should not have (`0x700000`, `0x002000`), not a "tinted near-black".
+- **Mid-tones with a blue component shift too**: `0x4ADE80` reads mint and `0xF87171` reads pink. Take the blue out if the colour is meant to be green or red.
+- The pin map is not the cause — it is identical to ESPHome's built-in `CROWPANEL-ADVANCE-7` model.
 
 ## LVGL gotchas
 
